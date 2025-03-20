@@ -65,3 +65,68 @@ export const recalculateReceipts = (receipts: DeliveryReceipt[]): DeliveryReceip
     };
   });
 };
+
+// Export utilities
+export const exportToExcel = (data: DeliveryReceipt[], companyName: string): void => {
+  import('xlsx').then(XLSX => {
+    // Prepare data for export
+    const workbookData = data.map(item => ({
+      Date: item.date ? formatDate(item.date) : '',
+      NB: item.nb !== null ? formatCurrency(item.nb) : '',
+      'Montant BL': formatCurrency(item.montantBL),
+      Avance: formatCurrency(item.avance),
+      Total: formatCurrency(item.total)
+    }));
+
+    // Create a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(workbookData);
+    
+    // Add company name as header
+    XLSX.utils.sheet_add_aoa(worksheet, [[`Company: ${companyName}`]], { origin: "A1" });
+    
+    // Create a workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Delivery Receipts');
+    
+    // Generate Excel file and trigger download
+    XLSX.writeFile(workbook, `${companyName || 'Delivery'}_Receipts.xlsx`);
+  }).catch(error => {
+    console.error('Error exporting to Excel:', error);
+  });
+};
+
+export const exportToPDF = (data: DeliveryReceipt[], companyName: string): void => {
+  import('jspdf').then(({ default: jsPDF }) => {
+    import('jspdf-autotable').then(({ default: autoTable }) => {
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      // Add company name as title
+      doc.setFontSize(18);
+      doc.text(`${companyName || 'Company'} - Delivery Receipts`, 14, 22);
+      
+      // Prepare table data
+      const tableData = data.map(item => [
+        item.date ? formatDate(item.date) : '',
+        item.nb !== null ? formatCurrency(item.nb) : '',
+        formatCurrency(item.montantBL),
+        formatCurrency(item.avance),
+        formatCurrency(item.total)
+      ]);
+      
+      // Generate table
+      autoTable(doc, {
+        head: [['Date', 'NB', 'Montant BL', 'Avance', 'Total']],
+        body: tableData,
+        startY: 30,
+      });
+      
+      // Save PDF
+      doc.save(`${companyName || 'Delivery'}_Receipts.pdf`);
+    }).catch(error => {
+      console.error('Error importing jspdf-autotable:', error);
+    });
+  }).catch(error => {
+    console.error('Error importing jsPDF:', error);
+  });
+};

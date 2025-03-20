@@ -24,3 +24,7 @@ export interface AdminFormData {
   montantBL: string;
   avance: string;
 }
+
+export interface CompanySettings {
+  name: string;
+}

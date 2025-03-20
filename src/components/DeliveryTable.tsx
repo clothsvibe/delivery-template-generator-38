@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -11,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeliveryReceipt, DeliveryTableColumn } from '@/types/deliveryReceipt';
-import { formatCurrency, formatDate, parseNumberInput } from '@/lib/formatters';
+import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF } from '@/lib/formatters';
 import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -20,6 +19,7 @@ interface DeliveryTableProps {
   data: DeliveryReceipt[];
   loading?: boolean;
   mode?: 'view' | 'edit';
+  companyName?: string;
   onUpdate?: (receipt: DeliveryReceipt) => void;
   onDelete?: (id: string) => void;
 }
@@ -28,6 +28,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   data,
   loading = false,
   mode = 'view',
+  companyName = 'Bon de Livraison',
   onUpdate,
   onDelete
 }) => {
@@ -51,7 +52,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     setTableData(data);
   }, [data]);
 
-  // Define table columns
   const columns = useMemo<DeliveryTableColumn[]>(() => [
     {
       id: 'date',
@@ -95,7 +95,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     },
   ], []);
 
-  // Handle sorting logic
   const handleSort = (key: keyof DeliveryReceipt) => {
     let direction: 'asc' | 'desc' | null = 'asc';
     
@@ -110,7 +109,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     setSortConfig({ key, direction });
   };
 
-  // Handle edit mode
   const startEditing = (row: DeliveryReceipt) => {
     setEditData({
       ...editData,
@@ -130,12 +128,10 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   };
 
   const cancelEditing = (id: string) => {
-    // Remove from edit data
     const newEditData = { ...editData };
     delete newEditData[id];
     setEditData(newEditData);
     
-    // Update isEditing flag
     setTableData(prev => 
       prev.map(item => 
         item.id === id ? { ...item, isEditing: false } : item
@@ -165,13 +161,12 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       nb: parseNumberInput(rowData.nb),
       montantBL: parseNumberInput(rowData.montantBL),
       avance: parseNumberInput(rowData.avance),
-      total: 0, // This will be recalculated in the service
+      total: 0,
       isEditing: false
     };
     
     onUpdate(updatedReceipt);
     
-    // Clear edit state
     const newEditData = { ...editData };
     delete newEditData[id];
     setEditData(newEditData);
@@ -181,9 +176,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (onDelete) onDelete(id);
   };
 
-  // Sort and filter data
   const filteredAndSortedData = useMemo(() => {
-    // First filter the data
     let processedData = [...tableData];
     
     if (searchTerm) {
@@ -197,32 +190,27 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       );
     }
     
-    // Then sort the data if sortConfig has values
     if (sortConfig.key && sortConfig.direction) {
       processedData.sort((a, b) => {
         const aValue = a[sortConfig.key as keyof DeliveryReceipt];
         const bValue = b[sortConfig.key as keyof DeliveryReceipt];
         
-        // Handle null values
         if (aValue === null && bValue === null) return 0;
         if (aValue === null) return 1;
         if (bValue === null) return -1;
         
-        // For dates, use string comparison
         if (sortConfig.key === 'date') {
           if (a.date < b.date) return sortConfig.direction === 'asc' ? -1 : 1;
           if (a.date > b.date) return sortConfig.direction === 'asc' ? 1 : -1;
           return 0;
         }
         
-        // For numbers
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           return sortConfig.direction === 'asc' 
             ? aValue - bValue
             : bValue - aValue;
         }
         
-        // For strings
         if (typeof aValue === 'string' && typeof bValue === 'string') {
           return sortConfig.direction === 'asc'
             ? aValue.localeCompare(bValue)
@@ -236,13 +224,12 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     return processedData;
   }, [tableData, searchTerm, sortConfig]);
 
-  // Handle exports
   const handleExportToExcel = () => {
     toast({
       title: "Export Started",
       description: "Your Excel file is being prepared for download.",
     });
-    // In a real application, this would trigger actual Excel export functionality
+    exportToExcel(tableData, companyName);
   };
 
   const handleExportToPDF = () => {
@@ -250,15 +237,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       title: "Export Started",
       description: "Your PDF file is being prepared for download.",
     });
-    // In a real application, this would trigger actual PDF export functionality
+    exportToPDF(tableData, companyName);
   };
 
-  // Render cell content based on edit mode
   const renderCell = (row: DeliveryReceipt, column: DeliveryTableColumn) => {
     const key = column.accessorKey;
     const value = row[key];
     
-    // If row is in edit mode and column is editable
     if (row.isEditing && column.enableEditing && mode === 'edit' && editData[row.id]) {
       if (key === 'date') {
         return (
@@ -289,14 +274,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       }
     }
     
-    // For non-editable cells or view mode
     return column.cell ? column.cell({ getValue: () => value }) : String(value || '');
   };
 
   return (
     <div className="flex flex-col gap-6 p-4 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-semibold">Bon de Livraison</h1>
+        <h1 className="text-2xl font-semibold">{companyName}</h1>
         
         <div className="w-full md:w-auto flex flex-col md:flex-row gap-3">
           <Input
@@ -356,7 +340,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
             </TableHeader>
             <TableBody>
               {loading ? (
-                // Loading state rows
                 Array(10).fill(0).map((_, idx) => (
                   <TableRow key={`skeleton-${idx}`} className="animate-pulse border-b border-gray-200">
                     {columns.map(column => (
@@ -372,7 +355,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                   </TableRow>
                 ))
               ) : filteredAndSortedData.length > 0 ? (
-                // Data rows
                 filteredAndSortedData.map((row) => (
                   <TableRow 
                     key={row.id}
@@ -431,7 +413,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                   </TableRow>
                 ))
               ) : (
-                // No results row
                 <TableRow>
                   <TableCell 
                     colSpan={mode === 'edit' ? columns.length + 1 : columns.length} 
