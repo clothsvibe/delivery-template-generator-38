@@ -7,6 +7,7 @@ export interface DeliveryReceipt {
   avance: number | null;
   total: number;
   isEditing?: boolean;
+  companyId?: string; // Add reference to company
 }
 
 export interface DeliveryTableColumn {
@@ -27,7 +28,9 @@ export interface AdminFormData {
 
 export interface CompanySettings {
   name: string;
+  id?: string;
   colorTheme?: string;
+  columnColors?: ColumnColors;
 }
 
 export interface ColumnColors {
@@ -42,4 +45,17 @@ export interface MonthlyReceipt {
   year: number;
   month: number;
   total: number;
+}
+
+export interface TableSettings {
+  companyId?: string;
+  columnColors: ColumnColors;
+}
+
+export interface HistoryEntry {
+  date: string;
+  action: 'add' | 'update' | 'delete';
+  receiptId: string;
+  details: Partial<DeliveryReceipt>;
+  companyId?: string;
 }

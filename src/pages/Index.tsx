@@ -2,17 +2,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
-import { DeliveryReceipt } from '@/types/deliveryReceipt';
+import { DeliveryReceipt, ColumnColors } from '@/types/deliveryReceipt';
 import { getDeliveryReceipts } from '@/services/deliveryReceiptService';
 import { getCompanySettings } from '@/services/companyService';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, Clock } from 'lucide-react';
 
 const Index = () => {
   const [deliveryData, setDeliveryData] = useState<DeliveryReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState('Bon de Livraison');
+  const [columnColors, setColumnColors] = useState<ColumnColors>({
+    date: '#ffffff',
+    nb: '#ffffff',
+    montantBL: '#0ea5e9',
+    avance: '#f97316',
+    total: '#22c55e'
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -26,6 +33,12 @@ const Index = () => {
         // Load company settings
         const settings = await getCompanySettings();
         setCompanyName(settings.name);
+        
+        // Load column colors
+        const savedColors = localStorage.getItem('columnColors');
+        if (savedColors) {
+          setColumnColors(JSON.parse(savedColors));
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -69,12 +82,20 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{companyName}</h1>
-          <Link to="/admin">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Settings size={16} />
-              Admin Panel
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/history">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Clock size={16} />
+                History
+              </Button>
+            </Link>
+            <Link to="/admin">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Settings size={16} />
+                Admin Panel
+              </Button>
+            </Link>
+          </div>
         </div>
         
         <DeliveryTable 
@@ -82,6 +103,7 @@ const Index = () => {
           loading={loading}
           mode="view"
           companyName={companyName}
+          columnColors={columnColors}
           onRowClick={handleRowClick}
         />
       </div>
