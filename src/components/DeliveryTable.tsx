@@ -198,13 +198,6 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (onDelete) onDelete(id);
   };
 
-  const handleColorChange = (column: string, color: string) => {
-    setColumnColors(prev => ({
-      ...prev,
-      [column]: color
-    }));
-  };
-
   const filteredAndSortedData = useMemo(() => {
     let processedData = [...tableData];
     
