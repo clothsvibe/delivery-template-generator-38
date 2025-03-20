@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -141,7 +140,11 @@ const ImportData: React.FC<ImportDataProps> = ({ onImport }) => {
         <Button 
           variant="outline" 
           className="w-full flex items-center justify-center gap-2"
-          onClick={() => document.querySelector('input[type="file"]')?.click()}
+          onClick={() => {
+            // Fix: Cast the element to HTMLInputElement type which has the click() method
+            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+            if (fileInput) fileInput.click();
+          }}
           disabled={isLoading}
         >
           <Upload size={16} />
