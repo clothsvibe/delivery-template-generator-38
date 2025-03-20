@@ -1,6 +1,7 @@
 
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 import { v4 as uuidv4 } from "uuid";
+import { recalculateReceipts } from "../lib/formatters";
 
 // Initial mock data based on the provided example
 const initialData: DeliveryReceipt[] = [
@@ -38,7 +39,7 @@ const generateMockData = (): DeliveryReceipt[] => {
     });
   }
   
-  return data;
+  return recalculateReceipts(data);
 };
 
 // In-memory data store
@@ -48,18 +49,30 @@ export const getDeliveryReceipts = (): Promise<DeliveryReceipt[]> => {
   return Promise.resolve(deliveryReceipts);
 };
 
-export const addDeliveryReceipt = (receipt: Omit<DeliveryReceipt, "id">): Promise<DeliveryReceipt> => {
-  const newReceipt = { ...receipt, id: uuidv4() };
-  deliveryReceipts = [...deliveryReceipts, newReceipt];
-  return Promise.resolve(newReceipt);
+export const addDeliveryReceipt = (receipt: Omit<DeliveryReceipt, "id" | "total">): Promise<DeliveryReceipt[]> => {
+  const newReceipt = { 
+    ...receipt, 
+    id: uuidv4(),
+    total: 0 // This will be recalculated
+  };
+  
+  deliveryReceipts = [newReceipt, ...deliveryReceipts];
+  deliveryReceipts = recalculateReceipts(deliveryReceipts);
+  
+  return Promise.resolve(deliveryReceipts);
 };
 
-export const updateDeliveryReceipt = (receipt: DeliveryReceipt): Promise<DeliveryReceipt> => {
-  deliveryReceipts = deliveryReceipts.map(r => r.id === receipt.id ? receipt : r);
-  return Promise.resolve(receipt);
+export const updateDeliveryReceipt = (receipt: Partial<DeliveryReceipt> & { id: string }): Promise<DeliveryReceipt[]> => {
+  deliveryReceipts = deliveryReceipts.map(r => 
+    r.id === receipt.id ? { ...r, ...receipt } : r
+  );
+  
+  deliveryReceipts = recalculateReceipts(deliveryReceipts);
+  return Promise.resolve(deliveryReceipts);
 };
 
-export const deleteDeliveryReceipt = (id: string): Promise<void> => {
+export const deleteDeliveryReceipt = (id: string): Promise<DeliveryReceipt[]> => {
   deliveryReceipts = deliveryReceipts.filter(r => r.id !== id);
-  return Promise.resolve();
+  deliveryReceipts = recalculateReceipts(deliveryReceipts);
+  return Promise.resolve(deliveryReceipts);
 };

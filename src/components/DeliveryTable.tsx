@@ -11,28 +11,45 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeliveryReceipt, DeliveryTableColumn } from '@/types/deliveryReceipt';
-import { formatCurrency, formatDate } from '@/lib/formatters';
-import { ChevronUp, ChevronDown, FileText, Download } from 'lucide-react';
+import { formatCurrency, formatDate, parseNumberInput } from '@/lib/formatters';
+import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DeliveryTableProps {
   data: DeliveryReceipt[];
   loading?: boolean;
+  mode?: 'view' | 'edit';
+  onUpdate?: (receipt: DeliveryReceipt) => void;
+  onDelete?: (id: string) => void;
 }
 
 const DeliveryTable: React.FC<DeliveryTableProps> = ({ 
   data,
-  loading = false 
+  loading = false,
+  mode = 'view',
+  onUpdate,
+  onDelete
 }) => {
+  const [tableData, setTableData] = useState<DeliveryReceipt[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{
     key: keyof DeliveryReceipt | null;
     direction: 'asc' | 'desc' | null;
   }>({ key: null, direction: null });
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [editData, setEditData] = useState<Record<string, {
+    date: string;
+    nb: string; 
+    montantBL: string;
+    avance: string;
+  }>>({});
+  
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setTableData(data);
+  }, [data]);
 
   // Define table columns
   const columns = useMemo<DeliveryTableColumn[]>(() => [
@@ -42,6 +59,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       accessorKey: 'date',
       cell: (info) => info.getValue() ? formatDate(info.getValue()) : '',
       enableSorting: true,
+      enableEditing: true,
     },
     {
       id: 'nb',
@@ -49,6 +67,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       accessorKey: 'nb',
       cell: (info) => info.getValue() ? formatCurrency(info.getValue()) : '',
       enableSorting: true,
+      enableEditing: true,
     },
     {
       id: 'montantBL',
@@ -56,6 +75,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       accessorKey: 'montantBL',
       cell: (info) => formatCurrency(info.getValue()),
       enableSorting: true,
+      enableEditing: true,
     },
     {
       id: 'avance',
@@ -63,6 +83,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       accessorKey: 'avance',
       cell: (info) => formatCurrency(info.getValue()),
       enableSorting: true,
+      enableEditing: true,
     },
     {
       id: 'total',
@@ -70,19 +91,9 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       accessorKey: 'total',
       cell: (info) => formatCurrency(info.getValue()),
       enableSorting: true,
+      enableEditing: false,
     },
   ], []);
-
-  // Handle row selection
-  const toggleRowSelection = (id: string) => {
-    const newSelected = new Set(selectedRows);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedRows(newSelected);
-  };
 
   // Handle sorting logic
   const handleSort = (key: keyof DeliveryReceipt) => {
@@ -99,19 +110,90 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     setSortConfig({ key, direction });
   };
 
+  // Handle edit mode
+  const startEditing = (row: DeliveryReceipt) => {
+    setEditData({
+      ...editData,
+      [row.id]: {
+        date: row.date || '',
+        nb: row.nb !== null ? row.nb.toString() : '',
+        montantBL: row.montantBL !== null ? row.montantBL.toString() : '',
+        avance: row.avance !== null ? row.avance.toString() : '',
+      }
+    });
+    
+    setTableData(prev => 
+      prev.map(item => 
+        item.id === row.id ? { ...item, isEditing: true } : item
+      )
+    );
+  };
+
+  const cancelEditing = (id: string) => {
+    // Remove from edit data
+    const newEditData = { ...editData };
+    delete newEditData[id];
+    setEditData(newEditData);
+    
+    // Update isEditing flag
+    setTableData(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, isEditing: false } : item
+      )
+    );
+  };
+
+  const handleEditChange = (id: string, field: string, value: string) => {
+    setEditData(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+
+  const saveEdit = (id: string) => {
+    if (!onUpdate) return;
+    
+    const rowData = editData[id];
+    if (!rowData) return;
+    
+    const updatedReceipt: DeliveryReceipt = {
+      id,
+      date: rowData.date,
+      nb: parseNumberInput(rowData.nb),
+      montantBL: parseNumberInput(rowData.montantBL),
+      avance: parseNumberInput(rowData.avance),
+      total: 0, // This will be recalculated in the service
+      isEditing: false
+    };
+    
+    onUpdate(updatedReceipt);
+    
+    // Clear edit state
+    const newEditData = { ...editData };
+    delete newEditData[id];
+    setEditData(newEditData);
+  };
+
+  const handleDelete = (id: string) => {
+    if (onDelete) onDelete(id);
+  };
+
   // Sort and filter data
   const filteredAndSortedData = useMemo(() => {
     // First filter the data
-    let processedData = [...data];
+    let processedData = [...tableData];
     
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase();
       processedData = processedData.filter(item => 
         (item.date && item.date.toLowerCase().includes(lowerCaseSearch)) ||
-        (item.nb && item.nb.toString().includes(searchTerm)) ||
-        (item.montantBL && item.montantBL.toString().includes(searchTerm)) ||
-        (item.avance && item.avance.toString().includes(searchTerm)) ||
-        (item.total && item.total.toString().includes(searchTerm))
+        (item.nb !== null && item.nb.toString().includes(searchTerm)) ||
+        (item.montantBL !== null && item.montantBL.toString().includes(searchTerm)) ||
+        (item.avance !== null && item.avance.toString().includes(searchTerm)) ||
+        (item.total !== null && item.total.toString().includes(searchTerm))
       );
     }
     
@@ -152,7 +234,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     }
     
     return processedData;
-  }, [data, searchTerm, sortConfig]);
+  }, [tableData, searchTerm, sortConfig]);
 
   // Handle exports
   const handleExportToExcel = () => {
@@ -169,6 +251,46 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       description: "Your PDF file is being prepared for download.",
     });
     // In a real application, this would trigger actual PDF export functionality
+  };
+
+  // Render cell content based on edit mode
+  const renderCell = (row: DeliveryReceipt, column: DeliveryTableColumn) => {
+    const key = column.accessorKey;
+    const value = row[key];
+    
+    // If row is in edit mode and column is editable
+    if (row.isEditing && column.enableEditing && mode === 'edit' && editData[row.id]) {
+      if (key === 'date') {
+        return (
+          <Input 
+            type="date" 
+            value={editData[row.id].date}
+            onChange={(e) => handleEditChange(row.id, 'date', e.target.value)}
+            className="h-8 w-full"
+          />
+        );
+      } else if (key === 'nb' || key === 'montantBL' || key === 'avance') {
+        const fieldMap: Record<string, string> = {
+          nb: 'nb',
+          montantBL: 'montantBL',
+          avance: 'avance'
+        };
+        const fieldName = fieldMap[key];
+        
+        return (
+          <Input 
+            type="text" 
+            value={editData[row.id][fieldName]}
+            onChange={(e) => handleEditChange(row.id, fieldName, e.target.value)}
+            className="h-8 w-full"
+            placeholder="0.00"
+          />
+        );
+      }
+    }
+    
+    // For non-editable cells or view mode
+    return column.cell ? column.cell({ getValue: () => value }) : String(value || '');
   };
 
   return (
@@ -208,14 +330,14 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       
       <div className="table-container animate-slide-up">
         <div className="overflow-x-auto">
-          <Table className="delivery-table">
+          <Table className="delivery-table border-collapse">
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-t border-b border-gray-200">
                 {columns.map((column) => (
                   <TableHead 
                     key={column.id}
                     onClick={() => column.enableSorting && handleSort(column.accessorKey)}
-                    className={column.enableSorting ? 'cursor-pointer select-none' : ''}
+                    className={`border-r border-l border-gray-200 ${column.enableSorting ? 'cursor-pointer select-none' : ''}`}
                   >
                     <div className="flex items-center gap-1">
                       {column.header}
@@ -227,18 +349,26 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     </div>
                   </TableHead>
                 ))}
+                {mode === 'edit' && (
+                  <TableHead className="border-r border-l border-gray-200 w-24">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 // Loading state rows
                 Array(10).fill(0).map((_, idx) => (
-                  <TableRow key={`skeleton-${idx}`} className="animate-pulse">
+                  <TableRow key={`skeleton-${idx}`} className="animate-pulse border-b border-gray-200">
                     {columns.map(column => (
-                      <TableCell key={`skeleton-cell-${column.id}-${idx}`}>
+                      <TableCell key={`skeleton-cell-${column.id}-${idx}`} className="border-r border-l border-gray-200">
                         <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
                       </TableCell>
                     ))}
+                    {mode === 'edit' && (
+                      <TableCell className="border-r border-l border-gray-200">
+                        <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : filteredAndSortedData.length > 0 ? (
@@ -246,22 +376,67 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 filteredAndSortedData.map((row) => (
                   <TableRow 
                     key={row.id}
-                    className={selectedRows.has(row.id) ? 'selected' : ''}
-                    onClick={() => toggleRowSelection(row.id)}
+                    className={`border-b border-gray-200 ${row.isEditing ? 'bg-blue-50' : ''}`}
                   >
                     {columns.map(column => (
-                      <TableCell key={`${row.id}-${column.id}`}>
-                        {column.cell 
-                          ? column.cell({ getValue: () => row[column.accessorKey] })
-                          : row[column.accessorKey] as string}
+                      <TableCell key={`${row.id}-${column.id}`} className="border-r border-l border-gray-200">
+                        {renderCell(row, column)}
                       </TableCell>
                     ))}
+                    {mode === 'edit' && (
+                      <TableCell className="border-r border-l border-gray-200">
+                        <div className="flex items-center space-x-1">
+                          {row.isEditing ? (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => saveEdit(row.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Save size={16} />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => cancelEditing(row.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <X size={16} />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => startEditing(row)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit size={16} />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDelete(row.id)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <Trash size={16} />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (
                 // No results row
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center py-8">
+                  <TableCell 
+                    colSpan={mode === 'edit' ? columns.length + 1 : columns.length} 
+                    className="text-center py-8 border-r border-l border-gray-200"
+                  >
                     Aucun résultat trouvé
                   </TableCell>
                 </TableRow>
