@@ -76,3 +76,18 @@ export const deleteDeliveryReceipt = (id: string): Promise<DeliveryReceipt[]> =>
   deliveryReceipts = recalculateReceipts(deliveryReceipts);
   return Promise.resolve(deliveryReceipts);
 };
+
+export const createMonthlyReceipt = (year: number, month: number): Promise<DeliveryReceipt[]> => {
+  // Format the date as YYYY-MM-DD for the first day of the month
+  const formattedDate = new Date(year, month, 1).toISOString().split('T')[0];
+  
+  // Create a new receipt for the month
+  const monthlyReceipt: Omit<DeliveryReceipt, "id" | "total"> = {
+    date: formattedDate,
+    nb: null,
+    montantBL: 0, // Start with 0, can be updated later
+    avance: null
+  };
+  
+  return addDeliveryReceipt(monthlyReceipt);
+};
