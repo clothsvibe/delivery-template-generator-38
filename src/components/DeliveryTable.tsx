@@ -22,7 +22,6 @@ interface DeliveryTableProps {
   companyName?: string;
   onUpdate?: (receipt: DeliveryReceipt) => void;
   onDelete?: (id: string) => void;
-  onItemClick?: () => void;
 }
 
 const DeliveryTable: React.FC<DeliveryTableProps> = ({ 
@@ -31,8 +30,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   mode = 'view',
   companyName = 'Bon de Livraison',
   onUpdate,
-  onDelete,
-  onItemClick
+  onDelete
 }) => {
   const [tableData, setTableData] = useState<DeliveryReceipt[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,17 +57,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       id: 'date',
       header: 'Date',
       accessorKey: 'date',
-      cell: (info) => {
-        const formattedDate = info.getValue() ? formatDate(info.getValue()) : '';
-        return onItemClick ? (
-          <span 
-            className="cursor-pointer hover:text-blue-600 hover:underline transition-colors"
-            onClick={onItemClick}
-          >
-            {formattedDate}
-          </span>
-        ) : formattedDate;
-      },
+      cell: (info) => info.getValue() ? formatDate(info.getValue()) : '',
       enableSorting: true,
       enableEditing: true,
     },
@@ -105,7 +93,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       enableSorting: true,
       enableEditing: false,
     },
-  ], [onItemClick]);
+  ], []);
 
   const handleSort = (key: keyof DeliveryReceipt) => {
     let direction: 'asc' | 'desc' | null = 'asc';
@@ -292,12 +280,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   return (
     <div className="flex flex-col gap-6 p-4 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 
-          className={`text-2xl font-semibold ${onItemClick ? 'cursor-pointer hover:text-blue-600 hover:underline transition-colors' : ''}`}
-          onClick={onItemClick}
-        >
-          {companyName}
-        </h1>
+        <h1 className="text-2xl font-semibold">{companyName}</h1>
         
         <div className="w-full md:w-auto flex flex-col md:flex-row gap-3">
           <Input

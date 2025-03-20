@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
 import AddDeliveryForm from '@/components/AddDeliveryForm';
 import ImportData from '@/components/ImportData';
 import CompanySettings from '@/components/CompanySettings';
 import { DeliveryReceipt, CompanySettings as CompanySettingsType } from '@/types/deliveryReceipt';
-import { getDeliveryReceipts, addDeliveryReceipt, updateDeliveryReceipt, deleteDeliveryReceipt, createMonthlyReceipt } from '@/services/deliveryReceiptService';
+import { getDeliveryReceipts, addDeliveryReceipt, updateDeliveryReceipt, deleteDeliveryReceipt } from '@/services/deliveryReceiptService';
 import { getCompanySettings } from '@/services/companyService';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Eye, Settings, Calendar } from 'lucide-react';
+import { Eye, Settings } from 'lucide-react';
 
 const Admin = () => {
   const [deliveryData, setDeliveryData] = useState<DeliveryReceipt[]>([]);
@@ -20,12 +20,10 @@ const Admin = () => {
   const [showImport, setShowImport] = useState(false);
   const [companyName, setCompanyName] = useState('Bon de Livraison');
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
     loadCompanySettings();
-    checkMonthlyReceipt();
   }, []);
 
   const fetchData = async () => {
@@ -51,45 +49,6 @@ const Admin = () => {
       setCompanyName(settings.name);
     } catch (error) {
       console.error('Error loading company settings:', error);
-    }
-  };
-
-  const checkMonthlyReceipt = async () => {
-    try {
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-      
-      // Check if we already have a receipt for this month
-      const monthlyReceiptExists = deliveryData.some(receipt => {
-        if (!receipt.date) return false;
-        try {
-          // Handle both full dates and year-only cases
-          if (receipt.date.length === 4) {
-            return receipt.date === currentYear.toString();
-          }
-          
-          const receiptDate = new Date(receipt.date);
-          return receiptDate.getMonth() === currentMonth && 
-                 receiptDate.getFullYear() === currentYear;
-        } catch {
-          return false;
-        }
-      });
-      
-      if (!monthlyReceiptExists) {
-        // Create a new monthly receipt
-        const newReceipt = await createMonthlyReceipt(currentYear, currentMonth);
-        toast({
-          title: "New Monthly Receipt",
-          description: `A new receipt for ${new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })} has been created.`,
-        });
-        
-        // Refresh data
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Error checking for monthly receipt:', error);
     }
   };
 
@@ -181,42 +140,11 @@ const Admin = () => {
     setShowSettings(false);
   };
 
-  // Handle click on date or company name to navigate to view page
-  const handleItemClick = () => {
-    navigate('/');
-  };
-
-  const handleCreateMonthly = async () => {
-    try {
-      const today = new Date();
-      const newReceipt = await createMonthlyReceipt(today.getFullYear(), today.getMonth());
-      toast({
-        title: "Success",
-        description: `New monthly receipt for ${today.toLocaleString('default', { month: 'long', year: 'numeric' })} created.`,
-      });
-      
-      // Refresh data
-      fetchData();
-    } catch (error) {
-      console.error('Error creating monthly receipt:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to create monthly receipt. Please try again.",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 
-            className="text-2xl font-bold cursor-pointer hover:text-blue-600 transition-colors" 
-            onClick={handleItemClick}
-          >
-            {companyName} - Admin Panel
-          </h1>
+          <h1 className="text-2xl font-bold">Bon de Livraison - Admin Panel</h1>
           <Link to="/">
             <Button variant="outline" className="flex items-center gap-2">
               <Eye size={16} />
@@ -245,14 +173,6 @@ const Admin = () => {
                   className="flex-1"
                 >
                   Add New Receipt
-                </Button>
-                <Button 
-                  onClick={handleCreateMonthly} 
-                  variant="outline" 
-                  className="flex-1 flex items-center justify-center gap-2"
-                >
-                  <Calendar size={16} />
-                  Create Monthly
                 </Button>
                 <Button 
                   onClick={() => setShowImport(true)} 
@@ -296,7 +216,6 @@ const Admin = () => {
           companyName={companyName}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
-          onItemClick={handleItemClick}
         />
       </div>
     </div>
