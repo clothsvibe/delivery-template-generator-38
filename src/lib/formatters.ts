@@ -1,4 +1,6 @@
 
+import { DeliveryReceipt } from "../types/deliveryReceipt";
+
 export const formatCurrency = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '';
   
