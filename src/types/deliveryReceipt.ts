@@ -27,4 +27,19 @@ export interface AdminFormData {
 
 export interface CompanySettings {
   name: string;
+  colorTheme?: string;
+}
+
+export interface ColumnColors {
+  date: string;
+  nb: string;
+  montantBL: string;
+  avance: string;
+  total: string;
+}
+
+export interface MonthlyReceipt {
+  year: number;
+  month: number;
+  total: number;
 }

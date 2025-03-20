@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
 import { DeliveryReceipt } from '@/types/deliveryReceipt';
 import { getDeliveryReceipts } from '@/services/deliveryReceiptService';
@@ -14,6 +14,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState('Bon de Livraison');
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,6 +41,29 @@ const Index = () => {
     fetchData();
   }, [toast]);
 
+  const handleRowClick = (receipt: DeliveryReceipt) => {
+    // Extract date information for navigation
+    if (receipt.date) {
+      // If it's a full date like "2025-01-16"
+      if (receipt.date.includes('-')) {
+        const [year, month] = receipt.date.split('-');
+        navigate(`/details/${year}/${month}`);
+      } 
+      // If it's just a year like "2025"
+      else if (/^\d{4}$/.test(receipt.date)) {
+        navigate(`/details/${receipt.date}`);
+      }
+    }
+    
+    // If no valid date, just show a toast with the receipt info
+    else {
+      toast({
+        title: "Receipt Details",
+        description: `Total: ${receipt.total.toFixed(2)}`,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">
       <div className="max-w-7xl mx-auto">
@@ -58,6 +82,7 @@ const Index = () => {
           loading={loading}
           mode="view"
           companyName={companyName}
+          onRowClick={handleRowClick}
         />
       </div>
     </div>

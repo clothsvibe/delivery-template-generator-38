@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -11,9 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeliveryReceipt, DeliveryTableColumn } from '@/types/deliveryReceipt';
 import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF } from '@/lib/formatters';
-import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X } from 'lucide-react';
+import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X, Settings } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DeliveryTableProps {
   data: DeliveryReceipt[];
@@ -22,6 +31,7 @@ interface DeliveryTableProps {
   companyName?: string;
   onUpdate?: (receipt: DeliveryReceipt) => void;
   onDelete?: (id: string) => void;
+  onRowClick?: (receipt: DeliveryReceipt) => void;
 }
 
 const DeliveryTable: React.FC<DeliveryTableProps> = ({ 
@@ -30,7 +40,8 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   mode = 'view',
   companyName = 'Bon de Livraison',
   onUpdate,
-  onDelete
+  onDelete,
+  onRowClick
 }) => {
   const [tableData, setTableData] = useState<DeliveryReceipt[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,12 +56,34 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     avance: string;
   }>>({});
   
+  // Column colors configuration
+  const [columnColors, setColumnColors] = useState({
+    date: '#ffffff',
+    nb: '#ffffff',
+    montantBL: '#0ea5e9',
+    avance: '#f97316',
+    total: '#22c55e'
+  });
+  
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
   useEffect(() => {
     setTableData(data);
   }, [data]);
+
+  // Load column colors from localStorage on mount
+  useEffect(() => {
+    const savedColors = localStorage.getItem('columnColors');
+    if (savedColors) {
+      setColumnColors(JSON.parse(savedColors));
+    }
+  }, []);
+
+  // Save column colors to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('columnColors', JSON.stringify(columnColors));
+  }, [columnColors]);
 
   const columns = useMemo<DeliveryTableColumn[]>(() => [
     {
@@ -176,6 +209,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (onDelete) onDelete(id);
   };
 
+  const handleColorChange = (column: string, color: string) => {
+    setColumnColors(prev => ({
+      ...prev,
+      [column]: color
+    }));
+  };
+
   const filteredAndSortedData = useMemo(() => {
     let processedData = [...tableData];
     
@@ -240,6 +280,12 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     exportToPDF(tableData, companyName);
   };
 
+  const handleRowClick = (row: DeliveryReceipt) => {
+    if (onRowClick && !row.isEditing && mode === 'view') {
+      onRowClick(row);
+    }
+  };
+
   const renderCell = (row: DeliveryReceipt, column: DeliveryTableColumn) => {
     const key = column.accessorKey;
     const value = row[key];
@@ -277,6 +323,18 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     return column.cell ? column.cell({ getValue: () => value }) : String(value || '');
   };
 
+  // Alternate row colors based on data (like in the provided image)
+  const getRowBackground = (index: number, row: DeliveryReceipt) => {
+    if (row.isEditing) return 'bg-blue-50';
+    
+    // Check if the row has a date but no month indicator (just a year)
+    if (row.date && /^\d{4}$/.test(row.date)) {
+      return 'bg-green-100'; // Green for year-only dates
+    }
+    
+    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+  };
+
   return (
     <div className="flex flex-col gap-6 p-4 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -308,6 +366,45 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
               <Download size={16} />
               <span>PDF</span>
             </Button>
+            
+            {mode === 'edit' && (
+              <Popover>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="export-button">
+                          <Settings size={16} />
+                          <span>Colors</span>
+                        </Button>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Customize column colors</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Column Colors</h4>
+                    <Separator />
+                    
+                    {columns.map(column => (
+                      <div key={column.id} className="grid grid-cols-2 items-center gap-2">
+                        <label htmlFor={`color-${column.id}`}>{column.header}</label>
+                        <input
+                          id={`color-${column.id}`}
+                          type="color"
+                          value={columnColors[column.accessorKey as keyof typeof columnColors]}
+                          onChange={(e) => handleColorChange(column.accessorKey, e.target.value)}
+                          className="h-8 w-full"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
       </div>
@@ -322,6 +419,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     key={column.id}
                     onClick={() => column.enableSorting && handleSort(column.accessorKey)}
                     className={`border-r border-l border-gray-200 ${column.enableSorting ? 'cursor-pointer select-none' : ''}`}
+                    style={{ backgroundColor: columnColors[column.accessorKey as keyof typeof columnColors] || '#ffffff' }}
                   >
                     <div className="flex items-center gap-1">
                       {column.header}
@@ -355,10 +453,11 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                   </TableRow>
                 ))
               ) : filteredAndSortedData.length > 0 ? (
-                filteredAndSortedData.map((row) => (
+                filteredAndSortedData.map((row, index) => (
                   <TableRow 
                     key={row.id}
-                    className={`border-b border-gray-200 ${row.isEditing ? 'bg-blue-50' : ''}`}
+                    className={`border-b border-gray-200 ${getRowBackground(index, row)} ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''}`}
+                    onClick={() => handleRowClick(row)}
                   >
                     {columns.map(column => (
                       <TableCell key={`${row.id}-${column.id}`} className="border-r border-l border-gray-200">
