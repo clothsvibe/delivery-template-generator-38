@@ -8,6 +8,7 @@ import History from './pages/History';
 import NotFound from './pages/NotFound';
 import { Toaster } from './components/ui/toaster';
 import DeliveryDetails from './pages/DeliveryDetails';
+import AddReceipt from './pages/AddReceipt';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/history" element={<History />} />
         <Route path="/details/:year" element={<DeliveryDetails />} />
         <Route path="/details/:year/:month" element={<DeliveryDetails />} />
+        <Route path="/add-receipt" element={<AddReceipt />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

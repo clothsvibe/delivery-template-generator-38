@@ -216,13 +216,13 @@ const Admin = () => {
             <Link to="/history">
               <Button variant="outline" className="flex items-center gap-2">
                 <Clock size={16} />
-                History
+                Historique
               </Button>
             </Link>
             <Link to="/">
               <Button variant="outline" className="flex items-center gap-2">
                 <Eye size={16} />
-                View Mode
+                Mode Vue
               </Button>
             </Link>
           </div>
@@ -249,19 +249,20 @@ const Admin = () => {
               />
             ) : (
               <div className="flex flex-col md:flex-row gap-2">
-                <Button 
-                  onClick={() => { closeAllPanels(); setShowAddForm(true); }} 
-                  className="flex-1 flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Add New Receipt
-                </Button>
+                <Link to="/add-receipt" className="flex-1">
+                  <Button 
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Ajouter Nouveau Bon de Livraison
+                  </Button>
+                </Link>
                 <Button 
                   onClick={() => { closeAllPanels(); setShowImport(true); }} 
                   variant="outline" 
                   className="flex-1"
                 >
-                  Import Data
+                  Importer Données
                 </Button>
                 <Button 
                   onClick={() => { closeAllPanels(); setShowSettings(true); }} 
@@ -269,7 +270,7 @@ const Admin = () => {
                   className="flex-1 flex items-center justify-center gap-2"
                 >
                   <Settings size={16} />
-                  Company Settings
+                  Paramètres
                 </Button>
                 <Button 
                   onClick={() => { closeAllPanels(); setShowColorEditor(true); }} 
@@ -277,24 +278,23 @@ const Admin = () => {
                   className="flex-1 flex items-center justify-center gap-2"
                 >
                   <PaintBucket size={16} />
-                  Table Colors
+                  Couleurs Tableau
                 </Button>
               </div>
             )}
           </div>
           
-          {(showAddForm || showSettings || showImport || showColorEditor) && (
+          {(showSettings || showImport || showColorEditor) && (
             <div className="flex justify-end">
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setShowAddForm(false);
                   setShowSettings(false);
                   setShowImport(false);
                   setShowColorEditor(false);
                 }}
               >
-                Cancel
+                Annuler
               </Button>
             </div>
           )}
@@ -318,7 +318,7 @@ const Admin = () => {
             size="lg"
           >
             <Save size={20} />
-            Save All Data
+            Enregistrer Toutes les Données
           </Button>
         </div>
       </div>

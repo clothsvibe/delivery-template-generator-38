@@ -37,7 +37,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel })
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-md bg-white">
-      <h3 className="text-lg font-medium">Add New Delivery Receipt</h3>
+      <h3 className="text-lg font-medium">Ajouter Nouveau Bon de Livraison</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-2">
@@ -49,7 +49,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel })
             value={formData.date}
             onChange={handleChange}
             required
-            placeholder="Enter date or text"
+            placeholder="YYYY-MM-DD"
           />
         </div>
         
@@ -93,10 +93,10 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel })
       
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          Annuler
         </Button>
         <Button type="submit">
-          Add Receipt
+          Ajouter
         </Button>
       </div>
     </form>
