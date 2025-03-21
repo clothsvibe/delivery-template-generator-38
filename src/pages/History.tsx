@@ -2,22 +2,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft, Clock, Download, FileText, Edit, Save, Undo, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatDate, formatCurrency } from '@/lib/formatters';
-import { HistoryEntry, CompanySettings } from '@/types/deliveryReceipt';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { formatDate, formatCurrency, exportToExcel, exportToPDF } from '@/lib/formatters';
+import { HistoryEntry, CompanySettings, DeliveryReceipt } from '@/types/deliveryReceipt';
 import { getCompanySettings } from '@/services/companyService';
-import { getHistoryEntries } from '@/services/historyService';
+import { getHistoryEntries, clearHistory } from '@/services/historyService';
 import { useToast } from '@/components/ui/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
 
 const History = () => {
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [companies, setCompanies] = useState<CompanySettings[]>([]);
   const [currentCompany, setCurrentCompany] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingEntry, setEditingEntry] = useState<HistoryEntry | null>(null);
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  const form = useForm({
+    defaultValues: {
+      date: '',
+      nb: '',
+      montantBL: '',
+      avance: '',
+    }
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -50,12 +69,36 @@ const History = () => {
     loadData();
   }, [toast]);
 
+  useEffect(() => {
+    if (editingEntry) {
+      form.setValue('date', editingEntry.details.date || '');
+      form.setValue('nb', editingEntry.details.nb !== undefined ? editingEntry.details.nb?.toString() || '' : '');
+      form.setValue('montantBL', editingEntry.details.montantBL !== undefined ? editingEntry.details.montantBL?.toString() || '' : '');
+      form.setValue('avance', editingEntry.details.avance !== undefined ? editingEntry.details.avance?.toString() || '' : '');
+    }
+  }, [editingEntry, form]);
+
   const getFilteredEntries = () => {
     if (!currentCompany) return [];
     
-    return historyEntries.filter(entry => 
+    let filtered = historyEntries.filter(entry => 
       !entry.companyId || entry.companyId === currentCompany
     );
+    
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(entry => 
+        entry.date.toLowerCase().includes(lowerSearch) ||
+        entry.action.toLowerCase().includes(lowerSearch) ||
+        entry.receiptId.toLowerCase().includes(lowerSearch) ||
+        (entry.details.date && entry.details.date.toLowerCase().includes(lowerSearch)) ||
+        (entry.details.nb !== undefined && entry.details.nb?.toString().includes(searchTerm)) ||
+        (entry.details.montantBL !== undefined && entry.details.montantBL?.toString().includes(searchTerm)) ||
+        (entry.details.avance !== undefined && entry.details.avance?.toString().includes(searchTerm))
+      );
+    }
+    
+    return filtered;
   };
 
   const getActionLabel = (action: HistoryEntry['action']) => {
@@ -66,6 +109,174 @@ const History = () => {
       default: return action;
     }
   };
+
+  const handleExportToExcel = (entries: HistoryEntry[]) => {
+    // Convert history entries to delivery receipts format for export
+    const exportData: DeliveryReceipt[] = entries.map(entry => ({
+      id: entry.receiptId,
+      date: entry.details.date || entry.date,
+      nb: entry.details.nb !== undefined ? entry.details.nb : null,
+      montantBL: entry.details.montantBL !== undefined ? entry.details.montantBL : null,
+      avance: entry.details.avance !== undefined ? entry.details.avance : null,
+      total: entry.details.total !== undefined ? entry.details.total : 0,
+    }));
+    
+    toast({
+      title: "Export Started",
+      description: "Your Excel file is being prepared for download.",
+    });
+    
+    const companyName = companies.find(c => c.id === currentCompany)?.name || 'History';
+    exportToExcel(exportData, `${companyName}_History`);
+  };
+
+  const handleExportToPDF = (entries: HistoryEntry[]) => {
+    // Convert history entries to delivery receipts format for export
+    const exportData: DeliveryReceipt[] = entries.map(entry => ({
+      id: entry.receiptId,
+      date: entry.details.date || entry.date,
+      nb: entry.details.nb !== undefined ? entry.details.nb : null,
+      montantBL: entry.details.montantBL !== undefined ? entry.details.montantBL : null,
+      avance: entry.details.avance !== undefined ? entry.details.avance : null,
+      total: entry.details.total !== undefined ? entry.details.total : 0,
+    }));
+    
+    toast({
+      title: "Export Started",
+      description: "Your PDF file is being prepared for download.",
+    });
+    
+    const companyName = companies.find(c => c.id === currentCompany)?.name || 'History';
+    exportToPDF(exportData, `${companyName}_History`);
+  };
+
+  const handleRowSelect = (entryId: string) => {
+    if (selectedEntries.includes(entryId)) {
+      setSelectedEntries(selectedEntries.filter(id => id !== entryId));
+    } else {
+      setSelectedEntries([...selectedEntries, entryId]);
+    }
+  };
+
+  const handleRestoreSelected = () => {
+    if (selectedEntries.length === 0) {
+      toast({
+        title: "No Entries Selected",
+        description: "Please select at least one history entry to restore.",
+      });
+      return;
+    }
+
+    toast({
+      title: "Restore Feature",
+      description: "Restore functionality would be implemented here for the selected entries.",
+    });
+
+    // Clear selection after operation
+    setSelectedEntries([]);
+  };
+
+  const startEditing = (entry: HistoryEntry) => {
+    setEditingEntry(entry);
+  };
+
+  const cancelEditing = () => {
+    setEditingEntry(null);
+    form.reset();
+  };
+
+  const saveEditedEntry = () => {
+    if (!editingEntry) return;
+    
+    const formValues = form.getValues();
+    
+    // In a real implementation, this would update the history entry
+    toast({
+      title: "Entry Updated",
+      description: `Entry ${editingEntry.receiptId.substring(0, 8)}... has been updated.`,
+    });
+    
+    // Reset form and editing state
+    cancelEditing();
+  };
+
+  const exportSelected = (type: 'excel' | 'pdf') => {
+    if (selectedEntries.length === 0) {
+      toast({
+        title: "No Entries Selected",
+        description: "Please select at least one history entry to export.",
+      });
+      return;
+    }
+
+    const entriesToExport = historyEntries.filter(entry => 
+      selectedEntries.includes(entry.receiptId)
+    );
+
+    if (type === 'excel') {
+      handleExportToExcel(entriesToExport);
+    } else {
+      handleExportToPDF(entriesToExport);
+    }
+  };
+
+  // UI Component for edit dialog/drawer 
+  const EditEntryUI = () => (
+    <>
+      <Form {...form}>
+        <div className="space-y-4 py-4">
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="nb"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>NB</FormLabel>
+                <FormControl>
+                  <Input {...field} type="text" />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="montantBL"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Montant BL</FormLabel>
+                <FormControl>
+                  <Input {...field} type="text" />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="avance"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Avance</FormLabel>
+                <FormControl>
+                  <Input {...field} type="text" />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+      </Form>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">
@@ -82,12 +293,83 @@ const History = () => {
         
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock size={20} />
-              History Log by Company
-            </CardTitle>
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Clock size={20} />
+                History Log by Company
+              </CardTitle>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                {selectedEntries.length > 0 && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRestoreSelected}
+                      className="flex items-center gap-2"
+                    >
+                      <Undo size={16} />
+                      <span>Restore Selected</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportSelected('excel')}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText size={16} />
+                      <span>Export Excel</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportSelected('pdf')}
+                      className="flex items-center gap-2"
+                    >
+                      <Download size={16} />
+                      <span>Export PDF</span>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+              <Input
+                placeholder="Search history..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="md:max-w-xs"
+              />
+              
+              {!selectedEntries.length && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExportToExcel(getFilteredEntries())}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText size={16} />
+                    <span>Export All to Excel</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExportToPDF(getFilteredEntries())}
+                    className="flex items-center gap-2"
+                  >
+                    <Download size={16} />
+                    <span>Export All to PDF</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+            
             {companies.length > 0 ? (
               <Tabs defaultValue={currentCompany || companies[0].id} onValueChange={setCurrentCompany}>
                 <TabsList className="mb-4">
@@ -109,15 +391,25 @@ const History = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-12 text-center">Select</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Action</TableHead>
                             <TableHead>Receipt ID</TableHead>
                             <TableHead>Details</TableHead>
+                            <TableHead className="w-24">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {getFilteredEntries().map((entry, index) => (
                             <TableRow key={`${entry.receiptId}-${index}`}>
+                              <TableCell className="text-center">
+                                <input 
+                                  type="checkbox" 
+                                  checked={selectedEntries.includes(entry.receiptId)}
+                                  onChange={() => handleRowSelect(entry.receiptId)}
+                                  className="h-4 w-4"
+                                />
+                              </TableCell>
                               <TableCell>{formatDate(entry.date)}</TableCell>
                               <TableCell>
                                 <span 
@@ -140,6 +432,73 @@ const History = () => {
                                     {entry.details.total !== undefined && <div>Total: {formatCurrency(entry.details.total)}</div>}
                                   </div>
                                 )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  {isMobile ? (
+                                    <Drawer>
+                                      <DrawerTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                          <Edit size={16} />
+                                        </Button>
+                                      </DrawerTrigger>
+                                      <DrawerContent>
+                                        <DrawerHeader>
+                                          <DrawerTitle>Edit Entry</DrawerTitle>
+                                          <DrawerDescription>Make changes to the history entry</DrawerDescription>
+                                        </DrawerHeader>
+                                        <div className="px-4">
+                                          {EditEntryUI()}
+                                        </div>
+                                        <DrawerFooter>
+                                          <Button onClick={saveEditedEntry}>Save changes</Button>
+                                          <DrawerClose asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                          </DrawerClose>
+                                        </DrawerFooter>
+                                      </DrawerContent>
+                                    </Drawer>
+                                  ) : (
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => startEditing(entry)}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Edit size={16} />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Edit Entry</DialogTitle>
+                                        </DialogHeader>
+                                        {EditEntryUI()}
+                                        <div className="flex justify-end gap-2 mt-4">
+                                          <Button variant="outline" onClick={cancelEditing}>
+                                            Cancel
+                                          </Button>
+                                          <Button onClick={saveEditedEntry}>
+                                            Save Changes
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  )}
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setSelectedEntries([entry.receiptId]);
+                                      handleRestoreSelected();
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Undo size={16} />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}

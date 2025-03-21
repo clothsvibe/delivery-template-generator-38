@@ -47,6 +47,66 @@ export const addHistoryEntry = (
   return Promise.resolve(historyEntries);
 };
 
+// Function to update an existing history entry
+export const updateHistoryEntry = (
+  receiptId: string,
+  updatedDetails: Partial<DeliveryReceipt>
+): Promise<HistoryEntry[]> => {
+  historyEntries = historyEntries.map(entry => {
+    if (entry.receiptId === receiptId) {
+      return {
+        ...entry,
+        details: {
+          ...entry.details,
+          ...updatedDetails
+        }
+      };
+    }
+    return entry;
+  });
+  
+  // Save to localStorage
+  try {
+    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+  } catch (error) {
+    console.error("Error saving updated history to localStorage:", error);
+  }
+  
+  return Promise.resolve(historyEntries);
+};
+
+// Function to restore a delivery receipt from history
+export const restoreFromHistory = (
+  receiptId: string
+): Promise<{ success: boolean, data?: Partial<DeliveryReceipt> }> => {
+  const entryToRestore = historyEntries.find(entry => entry.receiptId === receiptId);
+  
+  if (!entryToRestore) {
+    return Promise.resolve({ success: false });
+  }
+  
+  return Promise.resolve({ 
+    success: true, 
+    data: entryToRestore.details 
+  });
+};
+
+// Function to delete specific history entries
+export const deleteHistoryEntries = (
+  receiptIds: string[]
+): Promise<HistoryEntry[]> => {
+  historyEntries = historyEntries.filter(entry => !receiptIds.includes(entry.receiptId));
+  
+  // Save to localStorage
+  try {
+    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+  } catch (error) {
+    console.error("Error saving history after deletion to localStorage:", error);
+  }
+  
+  return Promise.resolve(historyEntries);
+};
+
 export const clearHistory = (): Promise<HistoryEntry[]> => {
   historyEntries = [];
   
