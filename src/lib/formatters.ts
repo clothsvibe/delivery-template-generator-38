@@ -10,6 +10,18 @@ export const formatCurrency = (value: number | null | undefined): string => {
   }).format(value);
 };
 
+// New formatter for PDF to use spaces instead of slashes for currency values
+export const formatCurrencyForPDF = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '';
+  
+  // Format with spaces instead of slashes
+  return new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  }).format(value).replace(/\s/g, ' ').replace(/,/g, '.');
+};
+
 export const formatDate = (dateString: string): string => {
   try {
     // Check if the date is a year only
@@ -105,13 +117,13 @@ export const exportToPDF = (data: DeliveryReceipt[], companyName: string): void 
       doc.setFontSize(18);
       doc.text(`${companyName || 'Company'} - Delivery Receipts`, 14, 22);
       
-      // Prepare table data
+      // Prepare table data with the new formatter for currency values
       const tableData = data.map(item => [
-        item.date ? formatDate(item.date) : '',
-        item.nb !== null ? formatCurrency(item.nb) : '',
-        formatCurrency(item.montantBL),
-        formatCurrency(item.avance),
-        formatCurrency(item.total)
+        item.date ? formatDate(item.date) : '', // Keep date format unchanged
+        item.nb !== null ? formatCurrencyForPDF(item.nb) : '', // Use new formatter for numeric values
+        formatCurrencyForPDF(item.montantBL),
+        formatCurrencyForPDF(item.avance),
+        formatCurrencyForPDF(item.total)
       ]);
       
       // Generate table
