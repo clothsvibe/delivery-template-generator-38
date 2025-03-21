@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
@@ -12,7 +11,7 @@ import { getCompanySettings } from '@/services/companyService';
 import { addHistoryEntry } from '@/services/historyService';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Eye, Settings, Clock, PaintBucket, Save } from 'lucide-react';
+import { Eye, Settings, Clock, PaintBucket, Save, Plus } from 'lucide-react';
 
 const Admin = () => {
   const [deliveryData, setDeliveryData] = useState<DeliveryReceipt[]>([]);
@@ -78,10 +77,8 @@ const Admin = () => {
     try {
       const updatedData = await addDeliveryReceipt(receipt);
       
-      // Get the newly added receipt (should be the last one)
       const newReceipt = updatedData[updatedData.length - 1];
       
-      // Add to history
       await addHistoryEntry('add', newReceipt.id, newReceipt);
       
       setDeliveryData(updatedData);
@@ -102,7 +99,6 @@ const Admin = () => {
 
   const handleUpdate = async (receipt: Partial<DeliveryReceipt> & { id: string }) => {
     try {
-      // Add to history before updating
       await addHistoryEntry('update', receipt.id, receipt);
       
       const updatedData = await updateDeliveryReceipt(receipt);
@@ -123,11 +119,9 @@ const Admin = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // Find the receipt to be deleted for history
       const receiptToDelete = deliveryData.find(r => r.id === id);
       
       if (receiptToDelete) {
-        // Add to history before deleting
         await addHistoryEntry('delete', id, receiptToDelete);
       }
       
@@ -149,15 +143,12 @@ const Admin = () => {
 
   const handleImport = async (importedData: DeliveryReceipt[]) => {
     try {
-      // Add each imported receipt
       let currentData = [...deliveryData];
       
       for (const receipt of importedData) {
-        // Add the receipt without id and total (will be calculated)
         const { id, total, ...receiptData } = receipt;
         currentData = await addDeliveryReceipt(receiptData);
         
-        // Get the newly added receipt for history
         const newReceipt = currentData[currentData.length - 1];
         await addHistoryEntry('add', newReceipt.id, newReceipt);
       }
@@ -191,7 +182,6 @@ const Admin = () => {
   };
 
   const handleSaveAll = () => {
-    // Save current state to localStorage
     localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
     localStorage.setItem('columnColors', JSON.stringify(columnColors));
     
@@ -206,6 +196,15 @@ const Admin = () => {
     setShowSettings(false);
     setShowImport(false);
     setShowColorEditor(false);
+  };
+
+  const handleAddMore = () => {
+    closeAllPanels();
+    setShowAddForm(true);
+    toast({
+      title: "Table getting full",
+      description: "You're adding more entries to your table. Consider exporting older data to keep the app responsive.",
+    });
   };
 
   return (
@@ -252,8 +251,9 @@ const Admin = () => {
               <div className="flex flex-col md:flex-row gap-2">
                 <Button 
                   onClick={() => { closeAllPanels(); setShowAddForm(true); }} 
-                  className="flex-1"
+                  className="flex-1 flex items-center gap-2"
                 >
+                  <Plus size={16} />
                   Add New Receipt
                 </Button>
                 <Button 
@@ -308,6 +308,7 @@ const Admin = () => {
           columnColors={columnColors}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          onAddMore={handleAddMore}
         />
         
         <div className="flex justify-center mt-8">

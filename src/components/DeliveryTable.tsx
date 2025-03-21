@@ -32,6 +32,7 @@ interface DeliveryTableProps {
   onUpdate?: (receipt: DeliveryReceipt) => void;
   onDelete?: (id: string) => void;
   onRowClick?: (receipt: DeliveryReceipt) => void;
+  onAddMore?: () => void;
 }
 
 const DeliveryTable: React.FC<DeliveryTableProps> = ({ 
@@ -42,7 +43,8 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   columnColors,
   onUpdate,
   onDelete,
-  onRowClick
+  onRowClick,
+  onAddMore
 }) => {
   const [tableData, setTableData] = useState<DeliveryReceipt[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -315,6 +317,8 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
   };
 
+  const isTableFull = tableData.length >= 15;
+
   return (
     <div className="flex flex-col gap-6 p-4 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -410,41 +414,83 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                         <div className="flex items-center space-x-1">
                           {row.isEditing ? (
                             <>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => saveEdit(row.id)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Save size={16} />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => cancelEditing(row.id)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <X size={16} />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => saveEdit(row.id)}
+                                      className="h-8 w-8 p-0"
+                                      style={{ color: tableColumnColors.montantBL }}
+                                    >
+                                      <Save size={16} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Save changes</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => cancelEditing(row.id)}
+                                      className="h-8 w-8 p-0"
+                                      style={{ color: tableColumnColors.avance }}
+                                    >
+                                      <X size={16} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Cancel editing</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </>
                           ) : (
                             <>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => startEditing(row)}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit size={16} />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handleDelete(row.id)}
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <Trash size={16} />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => startEditing(row)}
+                                      className="h-8 w-8 p-0"
+                                      style={{ color: tableColumnColors.montantBL }}
+                                    >
+                                      <Edit size={16} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleDelete(row.id)}
+                                      className="h-8 w-8 p-0"
+                                      style={{ color: "#ea384c" }}
+                                    >
+                                      <Trash size={16} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </>
                           )}
                         </div>
@@ -465,6 +511,31 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
             </TableBody>
           </Table>
         </div>
+        
+        {mode === 'edit' && isTableFull && onAddMore && (
+          <div className="flex justify-center mt-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={onAddMore}
+                    style={{ color: "#0EA5E9", borderColor: "#0EA5E9" }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Add More Entries
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Table is getting full! Click to add more entries</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
       </div>
     </div>
   );
