@@ -310,11 +310,15 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const getRowBackground = (index: number, row: DeliveryReceipt) => {
     if (row.isEditing) return 'bg-blue-50';
     
-    if (row.date && /^\d{4}$/.test(row.date)) {
+    if (row.date && !isDateFormat(row.date)) {
       return 'bg-green-100';
     }
     
     return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+  };
+
+  const isDateFormat = (str: string) => {
+    return /^\d{4}-\d{2}-\d{2}$/.test(str);
   };
 
   const isTableFull = tableData.length >= 15;

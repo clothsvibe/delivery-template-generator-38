@@ -45,10 +45,11 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel })
           <Input
             id="date"
             name="date"
-            type="date"
+            type="text"
             value={formData.date}
             onChange={handleChange}
             required
+            placeholder="Enter date or text"
           />
         </div>
         
