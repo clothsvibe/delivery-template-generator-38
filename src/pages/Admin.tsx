@@ -286,7 +286,8 @@ const Admin = () => {
           <div>
             {showSettings ? (
               <CompanySettings 
-                onSettingsChange={handleSettingsChange} 
+                onSettingsChange={handleSettingsChange}
+                companyId={companyId || undefined}
               />
             ) : showImport ? (
               <ImportData onImport={handleImport} />

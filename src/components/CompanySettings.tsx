@@ -10,18 +10,23 @@ import { Save } from 'lucide-react';
 
 interface CompanySettingsProps {
   onSettingsChange?: (settings: CompanySettingsType) => void;
+  companyId?: string; // Add companyId prop
 }
 
-const CompanySettings: React.FC<CompanySettingsProps> = ({ onSettingsChange }) => {
+const CompanySettings: React.FC<CompanySettingsProps> = ({ onSettingsChange, companyId }) => {
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const settings = await getCompanySettings();
-        setCompanyName(settings.name);
+        const settings = await getCompanySettings(companyId);
+        if (settings) {
+          setCompanyName(settings.name);
+          setCurrentCompanyId(settings.id);
+        }
         setLoading(false);
       } catch (error) {
         console.error('Error loading company settings:', error);
@@ -35,18 +40,30 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ onSettingsChange }) =
     };
 
     loadSettings();
-  }, [toast]);
+  }, [toast, companyId]);
 
   const handleSave = async () => {
+    if (!currentCompanyId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No company ID found. Cannot save settings.",
+      });
+      return;
+    }
+
     try {
-      const updatedSettings = await updateCompanySettings({ name: companyName });
+      const updatedSettings = await updateCompanySettings({ 
+        id: currentCompanyId, 
+        name: companyName 
+      });
       
       toast({
         title: "Success",
         description: "Company settings saved successfully.",
       });
       
-      if (onSettingsChange) {
+      if (onSettingsChange && updatedSettings) {
         onSettingsChange(updatedSettings);
       }
     } catch (error) {
