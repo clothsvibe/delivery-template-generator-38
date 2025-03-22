@@ -13,8 +13,9 @@ try {
     companies = JSON.parse(storedSettings);
   } else {
     // Create default company if none exists
+    const defaultCompanyId = uuidv4();
     const defaultCompany: CompanySettings = {
-      id: uuidv4(),
+      id: defaultCompanyId,
       name: "Bon de Livraison",
       logo: "/placeholder.svg",
       rowColors: {
@@ -25,6 +26,9 @@ try {
     };
     companies = [defaultCompany];
     localStorage.setItem(COMPANY_SETTINGS_KEY, JSON.stringify(companies));
+    
+    // Store the default company ID separately for initialization purposes
+    localStorage.setItem('default_company_id', defaultCompanyId);
   }
 } catch (error) {
   console.error("Error loading company settings from localStorage:", error);
@@ -45,9 +49,10 @@ export const getAllCompanies = async (): Promise<CompanySettings[]> => {
 };
 
 export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<CompanySettings> => {
+  const newCompanyId = uuidv4();
   const newCompany: CompanySettings = {
     ...company,
-    id: uuidv4()
+    id: newCompanyId
   };
   
   companies.push(newCompany);

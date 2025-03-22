@@ -44,17 +44,17 @@ const Admin = () => {
   useEffect(() => {
     if (urlCompanyId) {
       setCompanyId(urlCompanyId);
-      fetchData();
-      loadCompanySettings();
+      fetchData(urlCompanyId);
+      loadCompanySettings(urlCompanyId);
     } else {
       navigate('/');
     }
   }, [urlCompanyId, navigate]);
 
-  const fetchData = async () => {
+  const fetchData = async (companyId: string) => {
     try {
       setLoading(true);
-      const data = await getDeliveryReceipts();
+      const data = await getDeliveryReceipts(companyId);
       setDeliveryData(data);
     } catch (error) {
       console.error('Error fetching delivery receipts:', error);
@@ -68,11 +68,9 @@ const Admin = () => {
     }
   };
 
-  const loadCompanySettings = async () => {
-    if (!urlCompanyId) return;
-    
+  const loadCompanySettings = async (companyId: string) => {
     try {
-      const settings = await getCompanySettings(urlCompanyId);
+      const settings = await getCompanySettings(companyId);
       if (settings) {
         setCompanyName(settings.name);
         
@@ -92,12 +90,14 @@ const Admin = () => {
   };
 
   const handleAdd = async (receipt: Omit<DeliveryReceipt, "id" | "total">) => {
+    if (!companyId) return;
+    
     try {
-      const updatedData = await addDeliveryReceipt(receipt);
+      const updatedData = await addDeliveryReceipt(receipt, companyId);
       
       const newReceipt = updatedData[updatedData.length - 1];
       
-      await addHistoryEntry('add', newReceipt.id, newReceipt);
+      await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
       
       setDeliveryData(updatedData);
       toast({
@@ -116,10 +116,12 @@ const Admin = () => {
   };
 
   const handleUpdate = async (receipt: Partial<DeliveryReceipt> & { id: string }) => {
+    if (!companyId) return;
+    
     try {
-      await addHistoryEntry('update', receipt.id, receipt);
+      await addHistoryEntry('update', receipt.id, receipt, companyId);
       
-      const updatedData = await updateDeliveryReceipt(receipt);
+      const updatedData = await updateDeliveryReceipt(receipt, companyId);
       setDeliveryData(updatedData);
       toast({
         title: "Success",
@@ -136,14 +138,16 @@ const Admin = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!companyId) return;
+    
     try {
       const receiptToDelete = deliveryData.find(r => r.id === id);
       
       if (receiptToDelete) {
-        await addHistoryEntry('delete', id, receiptToDelete);
+        await addHistoryEntry('delete', id, receiptToDelete, companyId);
       }
       
-      const updatedData = await deleteDeliveryReceipt(id);
+      const updatedData = await deleteDeliveryReceipt(id, companyId);
       setDeliveryData(updatedData);
       toast({
         title: "Success",
@@ -160,15 +164,17 @@ const Admin = () => {
   };
 
   const handleImport = async (importedData: DeliveryReceipt[]) => {
+    if (!companyId) return;
+    
     try {
       let currentData = [...deliveryData];
       
       for (const receipt of importedData) {
         const { id, total, ...receiptData } = receipt;
-        currentData = await addDeliveryReceipt(receiptData);
+        currentData = await addDeliveryReceipt(receiptData, companyId);
         
         const newReceipt = currentData[currentData.length - 1];
-        await addHistoryEntry('add', newReceipt.id, newReceipt);
+        await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
       }
       
       setDeliveryData(currentData);
@@ -220,7 +226,7 @@ const Admin = () => {
   };
 
   const handleSaveAll = () => {
-    localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
+    if (!companyId) return;
     
     if (companyId) {
       updateCompanySettings({

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,6 +13,7 @@ import { parseNumberInput } from '@/lib/formatters';
 
 const AddReceipt = () => {
   const navigate = useNavigate();
+  const { companyId } = useParams<{ companyId: string }>();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -29,6 +30,15 @@ const AddReceipt = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!companyId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No company ID found. Cannot save receipt.",
+      });
+      return;
+    }
+    
     try {
       const receiptData = {
         date: formData.date,
@@ -37,18 +47,18 @@ const AddReceipt = () => {
         avance: parseNumberInput(formData.avance),
       };
       
-      const updatedData = await addDeliveryReceipt(receiptData);
-      const newReceipt = updatedData[updatedData.length - 1];
+      const updatedData = await addDeliveryReceipt(receiptData, companyId);
+      const newReceipt = updatedData[0]; // The new receipt is now at index 0
       
-      await addHistoryEntry('add', newReceipt.id, newReceipt);
+      await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
       
       toast({
         title: "Success",
         description: "New bon de livraison added successfully.",
       });
       
-      // Clear form or navigate back
-      navigate('/admin');
+      // Navigate back to the admin page with the company ID
+      navigate(`/admin/${companyId}`);
     } catch (error) {
       console.error('Error adding delivery receipt:', error);
       toast({
@@ -64,7 +74,7 @@ const AddReceipt = () => {
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm">
         <div className="flex items-center justify-between p-6 border-b">
           <h1 className="text-2xl font-semibold">Ajouter Nouveau Bon de Livraison</h1>
-          <Link to="/admin">
+          <Link to={companyId ? `/admin/${companyId}` : "/admin"}>
             <Button variant="outline" size="sm" className="flex items-center gap-2">
               <ArrowLeft size={16} />
               Retour
