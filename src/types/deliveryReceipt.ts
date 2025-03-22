@@ -27,10 +27,12 @@ export interface AdminFormData {
 }
 
 export interface CompanySettings {
+  id: string;
   name: string;
-  id?: string;
+  logo?: string;
   colorTheme?: string;
   columnColors?: ColumnColors;
+  rowColors?: RowColors;
 }
 
 export interface ColumnColors {
@@ -39,6 +41,12 @@ export interface ColumnColors {
   montantBL: string;
   avance: string;
   total: string;
+}
+
+export interface RowColors {
+  even: string;
+  odd: string;
+  header: string;
 }
 
 export interface MonthlyReceipt {
@@ -50,6 +58,7 @@ export interface MonthlyReceipt {
 export interface TableSettings {
   companyId?: string;
   columnColors: ColumnColors;
+  rowColors?: RowColors;
 }
 
 export interface HistoryEntry {

@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Index from './pages/Index';
+import BonDeLivraison from './pages/BonDeLivraison';
 import Admin from './pages/Admin';
 import History from './pages/History';
 import NotFound from './pages/NotFound';
@@ -15,11 +16,13 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/bondelivraison/:companyId" element={<BonDeLivraison />} />
+        <Route path="/admin/:companyId" element={<Admin />} />
         <Route path="/history" element={<History />} />
         <Route path="/details/:year" element={<DeliveryDetails />} />
         <Route path="/details/:year/:month" element={<DeliveryDetails />} />
         <Route path="/add-receipt" element={<AddReceipt />} />
+        <Route path="/add-receipt/:companyId" element={<AddReceipt />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

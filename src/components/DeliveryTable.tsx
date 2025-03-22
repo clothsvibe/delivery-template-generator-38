@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { DeliveryReceipt, DeliveryTableColumn, ColumnColors } from '@/types/deliveryReceipt';
+import { DeliveryReceipt, DeliveryTableColumn, ColumnColors, RowColors } from '@/types/deliveryReceipt';
 import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF } from '@/lib/formatters';
 import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X, Settings } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
@@ -29,6 +29,7 @@ interface DeliveryTableProps {
   mode?: 'view' | 'edit';
   companyName?: string;
   columnColors?: ColumnColors;
+  rowColors?: RowColors;
   onUpdate?: (receipt: DeliveryReceipt) => void;
   onDelete?: (id: string) => void;
   onRowClick?: (receipt: DeliveryReceipt) => void;
@@ -41,6 +42,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   mode = 'view',
   companyName = 'Bon de Livraison',
   columnColors,
+  rowColors,
   onUpdate,
   onDelete,
   onRowClick,
@@ -67,7 +69,14 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     total: '#22c55e'
   };
   
+  const defaultRowColors = {
+    even: '#ffffff',
+    odd: '#f3f4f6',
+    header: '#f8fafc'
+  };
+  
   const tableColumnColors = columnColors || defaultColumnColors;
+  const tableRowColors = rowColors || defaultRowColors;
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -314,7 +323,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       return 'bg-green-100';
     }
     
-    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+    return index % 2 === 0 ? tableRowColors.even : tableRowColors.odd;
   };
 
   const isDateFormat = (str: string) => {
@@ -362,7 +371,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
         <div className="overflow-x-auto">
           <Table className="delivery-table border-collapse">
             <TableHeader>
-              <TableRow className="border-t border-b border-gray-200">
+              <TableRow className="border-t border-b border-gray-200" style={{ backgroundColor: tableRowColors.header }}>
                 {columns.map((column) => (
                   <TableHead 
                     key={column.id}
@@ -405,8 +414,9 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 filteredAndSortedData.map((row, index) => (
                   <TableRow 
                     key={row.id}
-                    className={`border-b border-gray-200 ${getRowBackground(index, row)} ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''}`}
+                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''}`}
                     onClick={() => handleRowClick(row)}
+                    style={{ backgroundColor: row.isEditing ? '#e0f2fe' : getRowBackground(index, row) }}
                   >
                     {columns.map(column => (
                       <TableCell key={`${row.id}-${column.id}`} className="border-r border-l border-gray-200">
@@ -546,3 +556,4 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
 };
 
 export default DeliveryTable;
+

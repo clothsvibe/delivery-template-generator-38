@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
 import AddDeliveryForm from '@/components/AddDeliveryForm';
 import ImportData from '@/components/ImportData';
 import CompanySettings from '@/components/CompanySettings';
 import TableColorEditor from '@/components/TableColorEditor';
-import { DeliveryReceipt, CompanySettings as CompanySettingsType, ColumnColors } from '@/types/deliveryReceipt';
+import RowColorEditor from '@/components/RowColorEditor';
+import { DeliveryReceipt, CompanySettings as CompanySettingsType, ColumnColors, RowColors } from '@/types/deliveryReceipt';
 import { getDeliveryReceipts, addDeliveryReceipt, updateDeliveryReceipt, deleteDeliveryReceipt } from '@/services/deliveryReceiptService';
-import { getCompanySettings } from '@/services/companyService';
+import { getCompanySettings, updateCompanySettings } from '@/services/companyService';
 import { addHistoryEntry } from '@/services/historyService';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Eye, Settings, Clock, PaintBucket, Save, Plus } from 'lucide-react';
+import { Eye, Settings, Clock, PaintBucket, Save, Plus, Home } from 'lucide-react';
 
 const Admin = () => {
   const [deliveryData, setDeliveryData] = useState<DeliveryReceipt[]>([]);
@@ -19,8 +20,10 @@ const Admin = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showColorEditor, setShowColorEditor] = useState(false);
+  const [showRowColorEditor, setShowRowColorEditor] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [companyName, setCompanyName] = useState('Bon de Livraison');
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [columnColors, setColumnColors] = useState<ColumnColors>({
     date: '#ffffff',
     nb: '#ffffff',
@@ -28,13 +31,25 @@ const Admin = () => {
     avance: '#f97316',
     total: '#22c55e'
   });
+  const [rowColors, setRowColors] = useState<RowColors>({
+    even: '#ffffff',
+    odd: '#f3f4f6',
+    header: '#f8fafc'
+  });
+  
   const { toast } = useToast();
+  const { companyId: urlCompanyId } = useParams<{ companyId: string }>();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
-    loadCompanySettings();
-    loadTableColors();
-  }, []);
+    if (urlCompanyId) {
+      setCompanyId(urlCompanyId);
+      fetchData();
+      loadCompanySettings();
+    } else {
+      navigate('/');
+    }
+  }, [urlCompanyId, navigate]);
 
   const fetchData = async () => {
     try {
@@ -54,22 +69,25 @@ const Admin = () => {
   };
 
   const loadCompanySettings = async () => {
+    if (!urlCompanyId) return;
+    
     try {
-      const settings = await getCompanySettings();
-      setCompanyName(settings.name);
-    } catch (error) {
-      console.error('Error loading company settings:', error);
-    }
-  };
-
-  const loadTableColors = () => {
-    try {
-      const savedColors = localStorage.getItem('columnColors');
-      if (savedColors) {
-        setColumnColors(JSON.parse(savedColors));
+      const settings = await getCompanySettings(urlCompanyId);
+      if (settings) {
+        setCompanyName(settings.name);
+        
+        if (settings.columnColors) {
+          setColumnColors(settings.columnColors);
+        }
+        
+        if (settings.rowColors) {
+          setRowColors(settings.rowColors);
+        }
+      } else {
+        navigate('/');
       }
     } catch (error) {
-      console.error('Error loading table colors:', error);
+      console.error('Error loading company settings:', error);
     }
   };
 
@@ -177,13 +195,40 @@ const Admin = () => {
 
   const handleColorChange = (colors: ColumnColors) => {
     setColumnColors(colors);
-    localStorage.setItem('columnColors', JSON.stringify(colors));
+    
+    if (companyId) {
+      updateCompanySettings({
+        id: companyId,
+        columnColors: colors
+      });
+    }
+    
     setShowColorEditor(false);
+  };
+  
+  const handleRowColorChange = (colors: RowColors) => {
+    setRowColors(colors);
+    
+    if (companyId) {
+      updateCompanySettings({
+        id: companyId,
+        rowColors: colors
+      });
+    }
+    
+    setShowRowColorEditor(false);
   };
 
   const handleSaveAll = () => {
     localStorage.setItem('deliveryData', JSON.stringify(deliveryData));
-    localStorage.setItem('columnColors', JSON.stringify(columnColors));
+    
+    if (companyId) {
+      updateCompanySettings({
+        id: companyId,
+        columnColors,
+        rowColors
+      });
+    }
     
     toast({
       title: "Data Saved",
@@ -196,6 +241,7 @@ const Admin = () => {
     setShowSettings(false);
     setShowImport(false);
     setShowColorEditor(false);
+    setShowRowColorEditor(false);
   };
 
   const handleAddMore = () => {
@@ -211,20 +257,28 @@ const Admin = () => {
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Bon de Livraison - Admin Panel</h1>
+          <h1 className="text-2xl font-bold">{companyName} - Admin Panel</h1>
           <div className="flex gap-2">
+            <Link to="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Home size={16} />
+                Companies
+              </Button>
+            </Link>
             <Link to="/history">
               <Button variant="outline" className="flex items-center gap-2">
                 <Clock size={16} />
                 Historique
               </Button>
             </Link>
-            <Link to="/">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Eye size={16} />
-                Mode Vue
-              </Button>
-            </Link>
+            {companyId && (
+              <Link to={`/bondelivraison/${companyId}`}>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Eye size={16} />
+                  Mode Vue
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
         
@@ -247,9 +301,15 @@ const Admin = () => {
                 onSave={handleColorChange}
                 onCancel={() => setShowColorEditor(false)}
               />
+            ) : showRowColorEditor ? (
+              <RowColorEditor
+                initialColors={rowColors}
+                onSave={handleRowColorChange}
+                onCancel={() => setShowRowColorEditor(false)}
+              />
             ) : (
               <div className="flex flex-col md:flex-row gap-2">
-                <Link to="/add-receipt" className="flex-1">
+                <Link to={companyId ? `/add-receipt/${companyId}` : "/add-receipt"} className="flex-1">
                   <Button 
                     className="w-full flex items-center justify-center gap-2"
                   >
@@ -278,13 +338,21 @@ const Admin = () => {
                   className="flex-1 flex items-center justify-center gap-2"
                 >
                   <PaintBucket size={16} />
-                  Couleurs Tableau
+                  Couleurs Colonnes
+                </Button>
+                <Button 
+                  onClick={() => { closeAllPanels(); setShowRowColorEditor(true); }} 
+                  variant="outline" 
+                  className="flex-1 flex items-center justify-center gap-2"
+                >
+                  <PaintBucket size={16} />
+                  Couleurs Lignes
                 </Button>
               </div>
             )}
           </div>
           
-          {(showSettings || showImport || showColorEditor) && (
+          {(showSettings || showImport || showColorEditor || showRowColorEditor) && (
             <div className="flex justify-end">
               <Button 
                 variant="outline" 
@@ -292,6 +360,7 @@ const Admin = () => {
                   setShowSettings(false);
                   setShowImport(false);
                   setShowColorEditor(false);
+                  setShowRowColorEditor(false);
                 }}
               >
                 Annuler
@@ -306,6 +375,7 @@ const Admin = () => {
           mode="edit"
           companyName={companyName}
           columnColors={columnColors}
+          rowColors={rowColors}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onAddMore={handleAddMore}
