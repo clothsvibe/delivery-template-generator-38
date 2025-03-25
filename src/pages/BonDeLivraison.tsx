@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
@@ -15,8 +14,8 @@ const BonDeLivraison = () => {
   const [companyName, setCompanyName] = useState('Bon de Livraison');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [columnColors, setColumnColors] = useState<ColumnColors>({
-    date: '#09008a', // Set date column to dark blue as requested
-    nb: '#ffffff',
+    date: '#09008a', // Dark blue for date column
+    nb: '#09008a', // Set NB column to dark blue as requested
     montantBL: '#0ea5e9',
     avance: '#f97316',
     total: '#22c55e'
@@ -65,11 +64,12 @@ const BonDeLivraison = () => {
         setCompanyId(settings.id);
         setCompanyName(settings.name);
         
-        // Preserve user settings but ensure date column is dark blue
+        // Preserve user settings but ensure date and NB columns are dark blue
         if (settings.columnColors) {
           setColumnColors({
             ...settings.columnColors,
-            date: '#09008a' // Ensure date is dark blue
+            date: '#09008a', // Ensure date is dark blue
+            nb: '#09008a' // Ensure NB is dark blue
           });
         }
         
