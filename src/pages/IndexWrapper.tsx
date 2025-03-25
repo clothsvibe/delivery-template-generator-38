@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { getAllCompanies, updateCompanySettings } from '@/services/companyService';
+import { getAllCompanies, updateCompanySettings, addCompany } from '@/services/companyService';
 import CompanyList from '@/components/CompanyList';
 import AuthNavbar from '@/components/AuthNavbar';
 import { Plus } from 'lucide-react';
@@ -45,23 +45,48 @@ const IndexWrapper = () => {
     fetchCompanies();
   }, []);
 
-  const handleCompanyAdded = () => {
-    setDialogOpen(false);
-    fetchCompanies();
-    toast({
-      title: "Company Added",
-      description: "The new company has been successfully added.",
-    });
+  const handleCompanyAdded = async (companyData: Omit<CompanySettings, "id">) => {
+    try {
+      await addCompany(companyData);
+      setDialogOpen(false);
+      fetchCompanies();
+      toast({
+        title: "Company Added",
+        description: "The new company has been successfully added.",
+      });
+    } catch (error) {
+      console.error('Error adding company:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add company. Please try again.",
+      });
+    }
   };
 
-  const handleCompanyUpdated = async () => {
-    setDialogOpen(false);
-    setEditingCompany(null);
-    await fetchCompanies();
-    toast({
-      title: "Company Updated",
-      description: "The company has been successfully updated.",
-    });
+  const handleCompanyUpdated = async (companyData: Omit<CompanySettings, "id">) => {
+    try {
+      if (editingCompany) {
+        await updateCompanySettings({
+          ...companyData,
+          id: editingCompany.id
+        });
+        setDialogOpen(false);
+        setEditingCompany(null);
+        await fetchCompanies();
+        toast({
+          title: "Company Updated",
+          description: "The company has been successfully updated.",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update company. Please try again.",
+      });
+    }
   };
 
   const handleCompanyDeleted = () => {
@@ -76,6 +101,14 @@ const IndexWrapper = () => {
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingCompany(null);
+  };
+
+  const handleFormSubmit = (companyData: Omit<CompanySettings, "id">) => {
+    if (editingCompany) {
+      handleCompanyUpdated(companyData);
+    } else {
+      handleCompanyAdded(companyData);
+    }
   };
 
   return (
@@ -104,7 +137,7 @@ const IndexWrapper = () => {
               </DialogHeader>
               <CompanyForm 
                 initialData={editingCompany || undefined} 
-                onSubmit={editingCompany ? handleCompanyUpdated : handleCompanyAdded}
+                onSubmit={handleFormSubmit}
                 onCancel={closeDialog}
               />
             </DialogContent>

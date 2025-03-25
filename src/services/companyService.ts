@@ -35,6 +35,16 @@ try {
 }
 
 export const getCompanySettings = async (companyId?: string): Promise<CompanySettings | null> => {
+  // Reload from localStorage each time to ensure up-to-date data
+  try {
+    const storedSettings = localStorage.getItem(COMPANY_SETTINGS_KEY);
+    if (storedSettings) {
+      companies = JSON.parse(storedSettings);
+    }
+  } catch (error) {
+    console.error("Error reloading company settings:", error);
+  }
+
   if (companyId) {
     const company = companies.find(c => c.id === companyId);
     return company || null;
@@ -45,6 +55,16 @@ export const getCompanySettings = async (companyId?: string): Promise<CompanySet
 };
 
 export const getAllCompanies = async (): Promise<CompanySettings[]> => {
+  // Reload from localStorage to ensure up-to-date data
+  try {
+    const storedSettings = localStorage.getItem(COMPANY_SETTINGS_KEY);
+    if (storedSettings) {
+      companies = JSON.parse(storedSettings);
+    }
+  } catch (error) {
+    console.error("Error reloading company settings:", error);
+  }
+  
   return companies;
 };
 
@@ -55,6 +75,16 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
     id: newCompanyId
   };
   
+  // Make sure we have the latest data
+  try {
+    const storedSettings = localStorage.getItem(COMPANY_SETTINGS_KEY);
+    if (storedSettings) {
+      companies = JSON.parse(storedSettings);
+    }
+  } catch (error) {
+    console.error("Error reloading company settings:", error);
+  }
+
   companies.push(newCompany);
   
   // Save to localStorage
@@ -62,12 +92,23 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
     localStorage.setItem(COMPANY_SETTINGS_KEY, JSON.stringify(companies));
   } catch (error) {
     console.error("Error saving company settings to localStorage:", error);
+    throw error;
   }
   
   return newCompany;
 };
 
 export const updateCompanySettings = async (settings: Partial<CompanySettings> & { id: string }): Promise<CompanySettings | null> => {
+  // Make sure we have the latest data
+  try {
+    const storedSettings = localStorage.getItem(COMPANY_SETTINGS_KEY);
+    if (storedSettings) {
+      companies = JSON.parse(storedSettings);
+    }
+  } catch (error) {
+    console.error("Error reloading company settings:", error);
+  }
+  
   const index = companies.findIndex(c => c.id === settings.id);
   
   if (index === -1) {
@@ -84,12 +125,23 @@ export const updateCompanySettings = async (settings: Partial<CompanySettings> &
     localStorage.setItem(COMPANY_SETTINGS_KEY, JSON.stringify(companies));
   } catch (error) {
     console.error("Error saving company settings to localStorage:", error);
+    throw error;
   }
   
   return companies[index];
 };
 
 export const deleteCompany = async (companyId: string): Promise<boolean> => {
+  // Make sure we have the latest data
+  try {
+    const storedSettings = localStorage.getItem(COMPANY_SETTINGS_KEY);
+    if (storedSettings) {
+      companies = JSON.parse(storedSettings);
+    }
+  } catch (error) {
+    console.error("Error reloading company settings:", error);
+  }
+  
   const initialLength = companies.length;
   companies = companies.filter(c => c.id !== companyId);
   
@@ -102,6 +154,7 @@ export const deleteCompany = async (companyId: string): Promise<boolean> => {
     localStorage.setItem(COMPANY_SETTINGS_KEY, JSON.stringify(companies));
   } catch (error) {
     console.error("Error saving company settings to localStorage:", error);
+    throw error;
   }
   
   return true;
