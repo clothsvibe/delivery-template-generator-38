@@ -78,7 +78,7 @@ const IndexWrapper = () => {
                   Create a new company to manage delivery receipts
                 </DialogDescription>
               </DialogHeader>
-              <CompanyForm onSave={handleCompanyAdded} />
+              <CompanyForm onSubmit={handleCompanyAdded} />
             </DialogContent>
           </Dialog>
         </div>
