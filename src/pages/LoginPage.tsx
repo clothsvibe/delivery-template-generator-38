@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 // In a real application, this should be securely stored in a backend
 // This is just for demonstration purposes
@@ -20,6 +21,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +30,8 @@ const LoginPage = () => {
     // Simple authentication logic - in a real app, this would be handled by a backend
     setTimeout(() => {
       if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Set auth state in localStorage
-        localStorage.setItem('authUser', JSON.stringify({ username, isAdmin: true }));
+        // Set auth state using the context
+        login({ username, isAdmin: true });
         
         toast({
           title: "Login successful",

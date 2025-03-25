@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { getAllCompanies } from '@/services/companyService';
+import { getAllCompanies, updateCompanySettings } from '@/services/companyService';
 import CompanyList from '@/components/CompanyList';
 import AuthNavbar from '@/components/AuthNavbar';
 import { Plus } from 'lucide-react';
@@ -15,11 +15,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import CompanyForm from '@/components/CompanyForm';
+import { CompanySettings } from '@/types/deliveryReceipt';
 
 const IndexWrapper = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<CompanySettings | null>(null);
   const { toast } = useToast();
 
   const fetchCompanies = async () => {
@@ -52,8 +54,28 @@ const IndexWrapper = () => {
     });
   };
 
+  const handleCompanyUpdated = async () => {
+    setDialogOpen(false);
+    setEditingCompany(null);
+    await fetchCompanies();
+    toast({
+      title: "Company Updated",
+      description: "The company has been successfully updated.",
+    });
+  };
+
   const handleCompanyDeleted = () => {
     fetchCompanies();
+  };
+
+  const handleEditCompany = (company: CompanySettings) => {
+    setEditingCompany(company);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingCompany(null);
   };
 
   return (
@@ -73,12 +95,18 @@ const IndexWrapper = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Company</DialogTitle>
+                <DialogTitle>{editingCompany ? 'Edit Company' : 'Add New Company'}</DialogTitle>
                 <DialogDescription>
-                  Create a new company to manage delivery receipts
+                  {editingCompany 
+                    ? 'Edit company details' 
+                    : 'Create a new company to manage delivery receipts'}
                 </DialogDescription>
               </DialogHeader>
-              <CompanyForm onSubmit={handleCompanyAdded} />
+              <CompanyForm 
+                initialData={editingCompany || undefined} 
+                onSubmit={editingCompany ? handleCompanyUpdated : handleCompanyAdded}
+                onCancel={closeDialog}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -93,6 +121,7 @@ const IndexWrapper = () => {
           <CompanyList 
             companies={companies} 
             onCompanyDeleted={handleCompanyDeleted} 
+            onEditCompany={handleEditCompany}
           />
         )}
       </div>

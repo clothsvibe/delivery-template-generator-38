@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { CompanySettings } from '@/types/deliveryReceipt';
 import { deleteCompany } from '@/services/companyService';
 import { useToast } from '@/components/ui/use-toast';
-import { Settings, Eye, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, Eye, Trash2, AlertTriangle, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +23,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface CompanyListProps {
   companies: CompanySettings[];
   onCompanyDeleted: () => void;
+  onEditCompany: (company: CompanySettings) => void;
 }
 
-const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted }) => {
+const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted, onEditCompany }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -99,6 +100,16 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted }
                   Admin
                 </Button>
               </Link>
+              {user?.isAdmin && (
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={() => onEditCompany(company)}
+                >
+                  <Edit size={16} />
+                  Edit
+                </Button>
+              )}
             </div>
             
             {user?.isAdmin && (
