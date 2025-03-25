@@ -15,7 +15,7 @@ const BonDeLivraison = () => {
   const [companyName, setCompanyName] = useState('Bon de Livraison');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [columnColors, setColumnColors] = useState<ColumnColors>({
-    date: '#ffffff',
+    date: '#09008a', // Set date column to dark blue as requested
     nb: '#ffffff',
     montantBL: '#0ea5e9',
     avance: '#f97316',
@@ -43,8 +43,8 @@ const BonDeLivraison = () => {
   const fetchData = async (companyId: string) => {
     try {
       setLoading(true);
-      // In a real app, you'd filter receipts by companyId
-      const data = await getDeliveryReceipts();
+      // Fetch company-specific delivery receipts
+      const data = await getDeliveryReceipts(companyId);
       setDeliveryData(data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -65,8 +65,12 @@ const BonDeLivraison = () => {
         setCompanyId(settings.id);
         setCompanyName(settings.name);
         
+        // Preserve user settings but ensure date column is dark blue
         if (settings.columnColors) {
-          setColumnColors(settings.columnColors);
+          setColumnColors({
+            ...settings.columnColors,
+            date: '#09008a' // Ensure date is dark blue
+          });
         }
         
         if (settings.rowColors) {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +9,10 @@ import { AdminFormData, DeliveryReceipt } from '@/types/deliveryReceipt';
 interface AddDeliveryFormProps {
   onSubmit: (data: Omit<DeliveryReceipt, "id" | "total">) => void;
   onCancel: () => void;
+  companyId?: string;
 }
 
-const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel }) => {
+const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, companyId }) => {
   const [formData, setFormData] = useState<AdminFormData>({
     date: new Date().toISOString().split('T')[0],
     nb: '',
@@ -31,6 +33,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel })
       nb: parseNumberInput(formData.nb),
       montantBL: parseNumberInput(formData.montantBL),
       avance: parseNumberInput(formData.avance),
+      companyId: companyId, // Add companyId to the submitted data
     });
   };
 
