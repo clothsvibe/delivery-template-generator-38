@@ -35,6 +35,7 @@ export default {
 					border: '#E0E0E0',
 					hoverRow: 'rgba(240, 240, 240, 0.5)',
 					selectedRow: 'rgba(229, 246, 253, 0.7)',
+					dateNb: '#182fe2', // Added the requested color for date and NB columns
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',

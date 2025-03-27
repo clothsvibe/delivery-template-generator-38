@@ -43,7 +43,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, c
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date" style={{ color: '#182fe2' }}>Date</Label>
           <Input
             id="date"
             name="date"
@@ -52,11 +52,12 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, c
             onChange={handleChange}
             required
             placeholder="YYYY-MM-DD"
+            className="border-[#182fe2] focus:ring-[#182fe2]"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="nb">NB</Label>
+          <Label htmlFor="nb" style={{ color: '#182fe2' }}>NB</Label>
           <Input
             id="nb"
             name="nb"
@@ -64,6 +65,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, c
             value={formData.nb}
             onChange={handleChange}
             placeholder="0.00"
+            className="border-[#182fe2] focus:ring-[#182fe2]"
           />
         </div>
         
