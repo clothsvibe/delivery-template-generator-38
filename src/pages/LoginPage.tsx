@@ -19,7 +19,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<string>('login');
   
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -32,6 +32,11 @@ const LoginPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError('Veuillez remplir tous les champs.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -46,48 +51,28 @@ const LoginPage = () => {
       if (loginError) {
         console.error('Login error:', loginError);
         setError(loginError.message || 'Erreur de connexion. Veuillez vérifier vos informations.');
-        throw loginError;
+        toast({
+          variant: 'destructive',
+          title: 'Échec de la connexion',
+          description: loginError.message || 'Impossible de se connecter. Veuillez vérifier vos informations.',
+        });
+        return;
       }
       
-      if (data.user) {
-        console.log('User authenticated:', data.user.id);
-        
-        // Get user profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          setError('Erreur lors de la récupération du profil.');
-          throw profileError;
-        }
-
-        console.log('Profile fetched:', profileData);
-        
-        login({
-          username: profileData?.username || data.user.email || '',
-          isAdmin: profileData?.is_admin || false
-        });
-        
+      if (data.session) {
+        console.log('Login successful, redirecting to home');
         toast({
           title: 'Connexion réussie',
           description: 'Vous êtes maintenant connecté.',
         });
-        
-        // Small delay to ensure state updates
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
       }
     } catch (error: any) {
       console.error('Login process error:', error);
+      setError(error.message || 'Une erreur s\'est produite lors de la connexion');
       toast({
         variant: 'destructive',
         title: 'Échec de la connexion',
-        description: error.message || 'Impossible de se connecter. Veuillez vérifier vos informations.',
+        description: error.message || 'Impossible de se connecter. Veuillez réessayer plus tard.',
       });
     } finally {
       setLoading(false);
@@ -96,6 +81,11 @@ const LoginPage = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError('Veuillez remplir tous les champs.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -110,7 +100,12 @@ const LoginPage = () => {
       if (signUpError) {
         console.error('Signup error:', signUpError);
         setError(signUpError.message || 'Erreur d\'inscription. Veuillez réessayer.');
-        throw signUpError;
+        toast({
+          variant: 'destructive',
+          title: 'Échec de l\'inscription',
+          description: signUpError.message || 'Impossible de créer un compte. Veuillez réessayer.',
+        });
+        return;
       }
       
       if (data.user) {
