@@ -156,6 +156,8 @@ export const getCompanySettings = async (companyId?: string): Promise<CompanySet
 
 export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<CompanySettings> => {
   try {
+    console.log("Adding company:", company);
+    
     // Insert into companies table
     const { data: newCompany, error: companyError } = await supabase
       .from('companies')
@@ -167,7 +169,12 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
       .select()
       .single();
       
-    if (companyError) throw companyError;
+    if (companyError) {
+      console.error("Error adding company:", companyError);
+      throw companyError;
+    }
+    
+    console.log("Company added successfully:", newCompany);
     
     // Insert column colors
     if (company.columnColors) {
@@ -177,12 +184,15 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
           company_id: newCompany.id,
           date: company.columnColors.date || '#182fe2',
           nb: company.columnColors.nb || '#182fe2',
-          montantBL: company.columnColors.montantBL || '#0ea5e9',
+          montantbl: company.columnColors.montantBL || '#0ea5e9', // Map from interface property to DB column name
           avance: company.columnColors.avance || '#f97316',
           total: company.columnColors.total || '#22c55e'
         });
         
-      if (columnError) throw columnError;
+      if (columnError) {
+        console.error("Error adding column colors:", columnError);
+        throw columnError;
+      }
     }
     
     // Insert row colors
@@ -196,7 +206,10 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
           header: company.rowColors.header || '#f8fafc'
         });
         
-      if (rowError) throw rowError;
+      if (rowError) {
+        console.error("Error adding row colors:", rowError);
+        throw rowError;
+      }
     } else {
       // Insert default row colors if not provided
       const { error: rowError } = await supabase
@@ -208,7 +221,10 @@ export const addCompany = async (company: Omit<CompanySettings, "id">): Promise<
           header: '#f8fafc'
         });
         
-      if (rowError) throw rowError;
+      if (rowError) {
+        console.error("Error adding default row colors:", rowError);
+        throw rowError;
+      }
     }
     
     return {
