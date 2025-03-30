@@ -10,11 +10,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<string>('login');
   
   const { login, isAuthenticated } = useAuth();
@@ -31,22 +33,39 @@ const LoginPage = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting login with:', { email });
+      
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) throw error;
+      if (loginError) {
+        console.error('Login error:', loginError);
+        setError(loginError.message || 'Erreur de connexion. Veuillez vérifier vos informations.');
+        throw loginError;
+      }
       
       if (data.user) {
+        console.log('User authenticated:', data.user.id);
+        
         // Get user profile
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
+        
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          setError('Erreur lors de la récupération du profil.');
+          throw profileError;
+        }
+
+        console.log('Profile fetched:', profileData);
         
         login({
           username: profileData?.username || data.user.email || '',
@@ -58,10 +77,13 @@ const LoginPage = () => {
           description: 'Vous êtes maintenant connecté.',
         });
         
-        navigate('/');
+        // Small delay to ensure state updates
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login process error:', error);
       toast({
         variant: 'destructive',
         title: 'Échec de la connexion',
@@ -75,14 +97,21 @@ const LoginPage = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      console.log('Attempting signup with:', { email });
+      
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
       
-      if (error) throw error;
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        setError(signUpError.message || 'Erreur d\'inscription. Veuillez réessayer.');
+        throw signUpError;
+      }
       
       if (data.user) {
         toast({
@@ -94,7 +123,7 @@ const LoginPage = () => {
         setActiveTab('login');
       }
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Signup error details:', error);
       toast({
         variant: 'destructive',
         title: 'Échec de l\'inscription',
@@ -125,6 +154,12 @@ const LoginPage = () => {
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4 pt-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input 
@@ -134,6 +169,7 @@ const LoginPage = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      autoComplete="email"
                     />
                   </div>
                   
@@ -145,12 +181,13 @@ const LoginPage = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      autoComplete="current-password"
                     />
                   </div>
                 </CardContent>
                 
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -167,6 +204,12 @@ const LoginPage = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp}>
                 <CardContent className="space-y-4 pt-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input 
@@ -176,6 +219,7 @@ const LoginPage = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      autoComplete="email"
                     />
                   </div>
                   
@@ -187,12 +231,13 @@ const LoginPage = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      autoComplete="new-password"
                     />
                   </div>
                 </CardContent>
                 
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
