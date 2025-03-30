@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -9,18 +9,20 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
   const location = useLocation();
+  const params = useParams();
 
   useEffect(() => {
+    console.log('Protected route checking auth state:', { isAuthenticated, params });
     // Short timeout to ensure auth state is fully loaded
     const timer = setTimeout(() => {
       setIsChecking(false);
     }, 500);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAuthenticated, params]);
 
   if (isChecking) {
     return (
@@ -34,10 +36,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to login from:', location.pathname);
     // Redirect to login but remember where the user was trying to go
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  console.log('User authenticated:', user);
   return <>{children}</>;
 };
 

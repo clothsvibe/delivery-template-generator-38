@@ -7,65 +7,66 @@ import { useToast } from '@/components/ui/use-toast';
 import { addDeliveryReceipt } from '@/services/deliveryReceiptService';
 import { addHistoryEntry } from '@/services/historyService';
 import { DeliveryReceipt } from '@/types/deliveryReceipt';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { parseNumberInput } from '@/lib/formatters';
+import AddDeliveryForm from '@/components/AddDeliveryForm';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AddReceipt = () => {
   const navigate = useNavigate();
   const { companyId } = useParams<{ companyId: string }>();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    nb: '',
-    montantBL: '',
-    avance: '',
-  });
+  const { user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] p-6 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-sm max-w-md w-full">
+          <h1 className="text-xl font-semibold text-red-600 mb-4">Erreur</h1>
+          <p className="text-gray-700 mb-6">Aucune entreprise sélectionnée. Impossible d'ajouter un bon de livraison.</p>
+          <Link to="/">
+            <Button className="w-full">Retour à l'accueil</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!companyId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No company ID found. Cannot save receipt.",
-      });
-      return;
-    }
+  const handleSubmit = async (formData: Omit<DeliveryReceipt, "id" | "total">) => {
+    setIsSubmitting(true);
+    setError(null);
     
     try {
-      const receiptData = {
-        date: formData.date,
-        nb: parseNumberInput(formData.nb),
-        montantBL: parseNumberInput(formData.montantBL),
-        avance: parseNumberInput(formData.avance),
-      };
+      console.log('Adding receipt with data:', { ...formData, companyId });
       
-      const updatedData = await addDeliveryReceipt(receiptData, companyId);
-      const newReceipt = updatedData[0]; // The new receipt is now at index 0
+      const updatedData = await addDeliveryReceipt(formData, companyId);
+      console.log('Receipt added, response:', updatedData);
       
-      await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
-      
-      toast({
-        title: "Success",
-        description: "New bon de livraison added successfully.",
-      });
-      
-      // Navigate back to the admin page with the company ID
-      navigate(`/admin/${companyId}`);
+      if (updatedData && updatedData.length > 0) {
+        const newReceipt = updatedData[0]; // The new receipt should be at index 0
+        
+        await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
+        
+        toast({
+          title: "Succès",
+          description: "Nouveau bon de livraison ajouté avec succès.",
+        });
+        
+        // Navigate back to the admin page with the company ID
+        navigate(`/admin/${companyId}`);
+      } else {
+        throw new Error("Aucune donnée retournée après l'ajout");
+      }
     } catch (error) {
       console.error('Error adding delivery receipt:', error);
+      setError("Échec de l'ajout du bon de livraison. Veuillez réessayer.");
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to add new bon de livraison. Please try again.",
+        title: "Erreur",
+        description: "Échec de l'ajout du bon de livraison. Veuillez réessayer.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -74,7 +75,7 @@ const AddReceipt = () => {
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm">
         <div className="flex items-center justify-between p-6 border-b">
           <h1 className="text-2xl font-semibold">Ajouter Nouveau Bon de Livraison</h1>
-          <Link to={companyId ? `/admin/${companyId}` : "/admin"}>
+          <Link to={`/admin/${companyId}`}>
             <Button variant="outline" size="sm" className="flex items-center gap-2">
               <ArrowLeft size={16} />
               Retour
@@ -82,74 +83,14 @@ const AddReceipt = () => {
           </Link>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="date" className="text-base">Date</Label>
-              <Input
-                id="date"
-                name="date"
-                type="text"
-                value={formData.date}
-                onChange={handleChange}
-                className="h-12 text-lg"
-                required
-                placeholder="YYYY-MM-DD"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="nb" className="text-base">NB</Label>
-              <Input
-                id="nb"
-                name="nb"
-                type="text"
-                value={formData.nb}
-                onChange={handleChange}
-                className="h-12 text-lg"
-                placeholder="0.00"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="montantBL" className="text-base">Montant BL</Label>
-              <Input
-                id="montantBL"
-                name="montantBL"
-                type="text"
-                value={formData.montantBL}
-                onChange={handleChange}
-                className="h-12 text-lg"
-                placeholder="0.00"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="avance" className="text-base">Avance</Label>
-              <Input
-                id="avance"
-                name="avance"
-                type="text"
-                value={formData.avance}
-                onChange={handleChange}
-                className="h-12 text-lg"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          
-          <div className="flex justify-end pt-4">
-            <Button 
-              type="submit" 
-              size="lg"
-              className="px-8 py-6 text-lg h-auto flex items-center gap-2"
-            >
-              <Save size={20} />
-              Enregistrer
-            </Button>
-          </div>
-        </form>
+        <div className="p-6">
+          <AddDeliveryForm 
+            onSubmit={handleSubmit}
+            onCancel={() => navigate(`/admin/${companyId}`)} 
+            companyId={companyId}
+            error={error || undefined}
+          />
+        </div>
       </div>
     </div>
   );

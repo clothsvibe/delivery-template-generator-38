@@ -5,6 +5,7 @@ import { recalculateReceipts } from "../lib/formatters";
 
 // Get all delivery receipts for a specific company
 export const getDeliveryReceipts = async (companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
+  console.log('Fetching delivery receipts for company:', companyId);
   try {
     const { data, error } = await supabase
       .from('delivery_receipts')
@@ -12,10 +13,15 @@ export const getDeliveryReceipts = async (companyId: string = 'default'): Promis
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in getDeliveryReceipts:', error);
+      throw error;
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} delivery receipts`);
     
     // Transform database records to DeliveryReceipt format
-    const receipts = data.map(record => ({
+    const receipts = (data || []).map(record => ({
       id: record.id,
       date: record.date || '',
       nb: record.nb,
@@ -33,6 +39,8 @@ export const getDeliveryReceipts = async (companyId: string = 'default'): Promis
 };
 
 export const addDeliveryReceipt = async (receipt: Omit<DeliveryReceipt, "id" | "total">, companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
+  console.log('Adding new delivery receipt:', receipt, 'for company:', companyId);
+  
   try {
     // Get current receipts to calculate the new total
     const currentReceipts = await getDeliveryReceipts(companyId);
@@ -45,21 +53,30 @@ export const addDeliveryReceipt = async (receipt: Omit<DeliveryReceipt, "id" | "
       newTotal += receipt.montantBL;
     }
     
+    // Format the data for insertion
+    const insertData = {
+      company_id: companyId,
+      date: receipt.date,
+      nb: receipt.nb,
+      montantbl: receipt.montantBL,
+      avance: receipt.avance,
+      total: newTotal
+    };
+    
+    console.log('Inserting record with data:', insertData);
+    
     // Insert the new receipt
     const { data: newReceipt, error } = await supabase
       .from('delivery_receipts')
-      .insert({
-        company_id: companyId,
-        date: receipt.date,
-        nb: receipt.nb,
-        montantbl: receipt.montantBL,
-        avance: receipt.avance,
-        total: newTotal
-      })
-      .select()
-      .single();
+      .insert(insertData)
+      .select();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in addDeliveryReceipt:', error);
+      throw error;
+    }
+    
+    console.log('Successfully added receipt, response:', newReceipt);
     
     // Get updated receipts
     return getDeliveryReceipts(companyId);

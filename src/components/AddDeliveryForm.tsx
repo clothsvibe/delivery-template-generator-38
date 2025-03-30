@@ -5,14 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseNumberInput } from '@/lib/formatters';
 import { AdminFormData, DeliveryReceipt } from '@/types/deliveryReceipt';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AddDeliveryFormProps {
   onSubmit: (data: Omit<DeliveryReceipt, "id" | "total">) => void;
   onCancel: () => void;
   companyId?: string;
+  error?: string;
 }
 
-const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, companyId }) => {
+const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ 
+  onSubmit, 
+  onCancel, 
+  companyId,
+  error 
+}) => {
   const [formData, setFormData] = useState<AdminFormData>({
     date: new Date().toISOString().split('T')[0],
     nb: '',
@@ -28,18 +36,32 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ onSubmit, onCancel, c
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!companyId) {
+      console.error('No company ID provided');
+      return;
+    }
+    
+    console.log('Submitting with company ID:', companyId);
+    
     onSubmit({
       date: formData.date,
       nb: parseNumberInput(formData.nb),
       montantBL: parseNumberInput(formData.montantBL),
       avance: parseNumberInput(formData.avance),
-      companyId: companyId, // Add companyId to the submitted data
+      companyId: companyId,
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-md bg-white">
       <h3 className="text-lg font-medium">Ajouter Nouveau Bon de Livraison</h3>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-2">
