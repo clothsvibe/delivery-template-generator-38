@@ -38,7 +38,7 @@ export interface CompanySettings {
 export interface ColumnColors {
   date: string;
   nb: string;
-  montantBL: string;
+  montantBL: string; // This matches our interface, but not DB (which uses montantbl)
   avance: string;
   total: string;
 }

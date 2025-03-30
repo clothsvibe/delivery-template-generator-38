@@ -16,7 +16,7 @@ export const getHistoryEntries = async (): Promise<HistoryEntry[]> => {
       date: record.date,
       action: record.action as HistoryEntry['action'],
       receiptId: record.receipt_id,
-      details: record.details,
+      details: record.details as Partial<DeliveryReceipt>, // Cast to expected type
       companyId: record.company_id
     }));
     
@@ -71,10 +71,15 @@ export const updateHistoryEntry = async (
     if (entriesData && entriesData.length > 0) {
       // Update all entries with this receipt ID
       await Promise.all(entriesData.map(async (entry) => {
+        // Make sure entry.details is an object before spreading
+        const currentDetails = typeof entry.details === 'object' && entry.details !== null 
+          ? entry.details as Partial<DeliveryReceipt> 
+          : {};
+        
         await supabase
           .from('history_entries')
           .update({
-            details: { ...entry.details, ...updatedDetails }
+            details: { ...currentDetails, ...updatedDetails }
           })
           .eq('id', entry.id);
       }));
@@ -105,7 +110,7 @@ export const restoreFromHistory = async (
     if (data && data.length > 0) {
       return {
         success: true,
-        data: data[0].details
+        data: data[0].details as Partial<DeliveryReceipt> // Cast to expected type
       };
     }
     

@@ -34,7 +34,13 @@ export const getAllCompanies = async (): Promise<CompanySettings[]> => {
           name: company.name,
           logo: company.logo,
           colorTheme: company.color_theme,
-          columnColors: columnColors || undefined,
+          columnColors: columnColors ? {
+            date: columnColors.date,
+            nb: columnColors.nb,
+            montantBL: columnColors.montantbl, // Map from DB column name to interface property name
+            avance: columnColors.avance,
+            total: columnColors.total
+          } : undefined,
           rowColors: rowColors || {
             even: '#ffffff',
             odd: '#f3f4f6',
@@ -84,7 +90,13 @@ export const getCompanySettings = async (companyId?: string): Promise<CompanySet
         name: company.name,
         logo: company.logo,
         colorTheme: company.color_theme,
-        columnColors: columnColors || undefined,
+        columnColors: columnColors ? {
+          date: columnColors.date,
+          nb: columnColors.nb,
+          montantBL: columnColors.montantbl, // Map from DB column name to interface property name
+          avance: columnColors.avance,
+          total: columnColors.total
+        } : undefined,
         rowColors: rowColors || {
           even: '#ffffff',
           odd: '#f3f4f6',
@@ -122,7 +134,13 @@ export const getCompanySettings = async (companyId?: string): Promise<CompanySet
         name: company.name,
         logo: company.logo,
         colorTheme: company.color_theme,
-        columnColors: columnColors || undefined,
+        columnColors: columnColors ? {
+          date: columnColors.date,
+          nb: columnColors.nb,
+          montantBL: columnColors.montantbl, // Map from DB column name to interface property name
+          avance: columnColors.avance,
+          total: columnColors.total
+        } : undefined,
         rowColors: rowColors || {
           even: '#ffffff',
           odd: '#f3f4f6',
@@ -243,7 +261,7 @@ export const updateCompanySettings = async (settings: Partial<CompanySettings> &
           .update({
             date: settings.columnColors.date || '#182fe2',
             nb: settings.columnColors.nb || '#182fe2',
-            montantBL: settings.columnColors.montantBL || '#0ea5e9',
+            montantbl: settings.columnColors.montantBL || '#0ea5e9', // Map from interface property to DB column name
             avance: settings.columnColors.avance || '#f97316',
             total: settings.columnColors.total || '#22c55e'
           })
@@ -258,7 +276,7 @@ export const updateCompanySettings = async (settings: Partial<CompanySettings> &
             company_id: settings.id,
             date: settings.columnColors.date || '#182fe2',
             nb: settings.columnColors.nb || '#182fe2',
-            montantBL: settings.columnColors.montantBL || '#0ea5e9',
+            montantbl: settings.columnColors.montantBL || '#0ea5e9', // Map from interface property to DB column name
             avance: settings.columnColors.avance || '#f97316',
             total: settings.columnColors.total || '#22c55e'
           });
