@@ -1,121 +1,155 @@
 
+import { supabase } from "@/integrations/supabase/client";
 import { HistoryEntry, DeliveryReceipt } from "@/types/deliveryReceipt";
-import { v4 as uuidv4 } from 'uuid';
 
-// Local storage key
-const HISTORY_ENTRIES_KEY = "delivery_history_entries";
-
-// Initialize from localStorage if available
-let historyEntries: HistoryEntry[] = [];
-
-try {
-  const storedEntries = localStorage.getItem(HISTORY_ENTRIES_KEY);
-  if (storedEntries) {
-    historyEntries = JSON.parse(storedEntries);
+export const getHistoryEntries = async (): Promise<HistoryEntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('history_entries')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    // Transform database records to HistoryEntry format
+    const entries: HistoryEntry[] = data.map(record => ({
+      date: record.date,
+      action: record.action as HistoryEntry['action'],
+      receiptId: record.receipt_id,
+      details: record.details,
+      companyId: record.company_id
+    }));
+    
+    return entries;
+  } catch (error) {
+    console.error("Error loading history entries from database:", error);
+    throw error;
   }
-} catch (error) {
-  console.error("Error loading history from localStorage:", error);
-}
-
-export const getHistoryEntries = (): Promise<HistoryEntry[]> => {
-  return Promise.resolve(historyEntries);
 };
 
-export const addHistoryEntry = (
+export const addHistoryEntry = async (
   action: HistoryEntry['action'],
   receiptId: string,
   details: Partial<DeliveryReceipt>,
   companyId?: string
 ): Promise<HistoryEntry[]> => {
-  const newEntry: HistoryEntry = {
-    date: new Date().toISOString(),
-    action,
-    receiptId,
-    details,
-    companyId
-  };
-  
-  historyEntries = [newEntry, ...historyEntries];
-  
-  // Save to localStorage
   try {
-    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+    // Insert new history entry
+    const { error } = await supabase
+      .from('history_entries')
+      .insert({
+        date: new Date().toISOString(),
+        action,
+        receipt_id: receiptId,
+        company_id: companyId,
+        details
+      });
+      
+    if (error) throw error;
+    
+    // Get updated history entries
+    return getHistoryEntries();
   } catch (error) {
-    console.error("Error saving history to localStorage:", error);
+    console.error("Error adding history entry to database:", error);
+    throw error;
   }
-  
-  return Promise.resolve(historyEntries);
 };
 
-// Function to update an existing history entry
-export const updateHistoryEntry = (
+export const updateHistoryEntry = async (
   receiptId: string,
   updatedDetails: Partial<DeliveryReceipt>
 ): Promise<HistoryEntry[]> => {
-  historyEntries = historyEntries.map(entry => {
-    if (entry.receiptId === receiptId) {
-      return {
-        ...entry,
-        details: {
-          ...entry.details,
-          ...updatedDetails
-        }
-      };
-    }
-    return entry;
-  });
-  
-  // Save to localStorage
   try {
-    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+    // Find the history entry to update
+    const { data: entriesData, error: findError } = await supabase
+      .from('history_entries')
+      .select('*')
+      .eq('receipt_id', receiptId);
+      
+    if (findError) throw findError;
+    
+    if (entriesData && entriesData.length > 0) {
+      // Update all entries with this receipt ID
+      await Promise.all(entriesData.map(async (entry) => {
+        await supabase
+          .from('history_entries')
+          .update({
+            details: { ...entry.details, ...updatedDetails }
+          })
+          .eq('id', entry.id);
+      }));
+    }
+    
+    // Get updated history entries
+    return getHistoryEntries();
   } catch (error) {
-    console.error("Error saving updated history to localStorage:", error);
+    console.error("Error updating history entry in database:", error);
+    throw error;
   }
-  
-  return Promise.resolve(historyEntries);
 };
 
-// Function to restore a delivery receipt from history
-export const restoreFromHistory = (
+export const restoreFromHistory = async (
   receiptId: string
 ): Promise<{ success: boolean, data?: Partial<DeliveryReceipt> }> => {
-  const entryToRestore = historyEntries.find(entry => entry.receiptId === receiptId);
-  
-  if (!entryToRestore) {
-    return Promise.resolve({ success: false });
+  try {
+    // Find the history entry to restore
+    const { data, error } = await supabase
+      .from('history_entries')
+      .select('*')
+      .eq('receipt_id', receiptId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+      
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return {
+        success: true,
+        data: data[0].details
+      };
+    }
+    
+    return { success: false };
+  } catch (error) {
+    console.error("Error restoring from history in database:", error);
+    throw error;
   }
-  
-  return Promise.resolve({ 
-    success: true, 
-    data: entryToRestore.details 
-  });
 };
 
-// Function to delete specific history entries
-export const deleteHistoryEntries = (
+export const deleteHistoryEntries = async (
   receiptIds: string[]
 ): Promise<HistoryEntry[]> => {
-  historyEntries = historyEntries.filter(entry => !receiptIds.includes(entry.receiptId));
-  
-  // Save to localStorage
   try {
-    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+    // Delete history entries
+    const { error } = await supabase
+      .from('history_entries')
+      .delete()
+      .in('receipt_id', receiptIds);
+      
+    if (error) throw error;
+    
+    // Get updated history entries
+    return getHistoryEntries();
   } catch (error) {
-    console.error("Error saving history after deletion to localStorage:", error);
+    console.error("Error deleting history entries from database:", error);
+    throw error;
   }
-  
-  return Promise.resolve(historyEntries);
 };
 
-export const clearHistory = (): Promise<HistoryEntry[]> => {
-  historyEntries = [];
-  
-  // Save to localStorage
+export const clearHistory = async (): Promise<HistoryEntry[]> => {
   try {
-    localStorage.setItem(HISTORY_ENTRIES_KEY, JSON.stringify(historyEntries));
+    // Delete all history entries
+    const { error } = await supabase
+      .from('history_entries')
+      .delete()
+      .neq('id', 'none'); // Delete all rows
+      
+    if (error) throw error;
+    
+    // Return empty array
+    return [];
   } catch (error) {
-    console.error("Error clearing history in localStorage:", error);
+    console.error("Error clearing history in database:", error);
+    throw error;
   }
-  
-  return Promise.resolve(historyEntries);
 };

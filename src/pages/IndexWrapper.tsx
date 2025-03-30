@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import CompanyForm from '@/components/CompanyForm';
 import { CompanySettings } from '@/types/deliveryReceipt';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const IndexWrapper = () => {
   const [companies, setCompanies] = useState([]);
@@ -23,12 +26,46 @@ const IndexWrapper = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanySettings | null>(null);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    fetchCompanies();
+  }, [isAuthenticated, navigate]);
 
   const fetchCompanies = async () => {
     try {
       setLoading(true);
       const data = await getAllCompanies();
-      setCompanies(data);
+      
+      // If no companies exist, create a default one
+      if (data.length === 0) {
+        const defaultCompany = await addCompany({
+          name: 'Bon de Livraison',
+          logo: '/placeholder.svg',
+          rowColors: {
+            even: '#ffffff',
+            odd: '#f3f4f6',
+            header: '#f8fafc'
+          },
+          columnColors: {
+            date: '#182fe2',
+            nb: '#182fe2',
+            montantBL: '#0ea5e9',
+            avance: '#f97316',
+            total: '#22c55e'
+          }
+        });
+        
+        setCompanies([defaultCompany]);
+      } else {
+        setCompanies(data);
+      }
     } catch (error) {
       console.error('Error fetching companies:', error);
       toast({
@@ -40,10 +77,6 @@ const IndexWrapper = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
 
   const handleCompanyAdded = async (companyData: Omit<CompanySettings, "id">) => {
     try {
@@ -110,6 +143,10 @@ const IndexWrapper = () => {
       handleCompanyAdded(companyData);
     }
   };
+
+  if (!isAuthenticated) {
+    return null; // Will redirect to login in useEffect
+  }
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen">

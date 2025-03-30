@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,34 +13,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const AuthNavbar: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+const AuthNavbar = () => {
+  const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
 
   return (
-    <div className="flex justify-end py-4 px-6 bg-white shadow-sm">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
-            <User size={16} />
-            {user?.username || 'User'}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700 cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <header className="bg-white border-b border-gray-200 py-4">
+      <div className="container flex justify-between items-center">
+        <Link to="/" className="text-2xl font-bold">
+          Bon de Livraison
+        </Link>
+
+        <div className="flex items-center gap-4">
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <User size={16} />
+                  {user?.username || 'Utilisateur'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {user?.isAdmin && (
+                  <DropdownMenuItem className="flex items-center gap-2">
+                    <Shield size={16} />
+                    <span>Administrateur</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                  <LogOut size={16} />
+                  <span>Déconnexion</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button>Connexion</Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
   );
 };
 

@@ -9,7 +9,200 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      column_colors: {
+        Row: {
+          avance: string | null
+          company_id: string
+          date: string | null
+          montantbl: string | null
+          nb: string | null
+          total: string | null
+        }
+        Insert: {
+          avance?: string | null
+          company_id: string
+          date?: string | null
+          montantbl?: string | null
+          nb?: string | null
+          total?: string | null
+        }
+        Update: {
+          avance?: string | null
+          company_id?: string
+          date?: string | null
+          montantbl?: string | null
+          nb?: string | null
+          total?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "column_colors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          color_theme: string | null
+          created_at: string | null
+          id: string
+          logo: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color_theme?: string | null
+          created_at?: string | null
+          id?: string
+          logo?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color_theme?: string | null
+          created_at?: string | null
+          id?: string
+          logo?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      delivery_receipts: {
+        Row: {
+          avance: number | null
+          company_id: string
+          created_at: string | null
+          date: string | null
+          id: string
+          montantbl: number | null
+          nb: number | null
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          avance?: number | null
+          company_id: string
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          montantbl?: number | null
+          nb?: number | null
+          total: number
+          updated_at?: string | null
+        }
+        Update: {
+          avance?: number | null
+          company_id?: string
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          montantbl?: number | null
+          nb?: number | null
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      history_entries: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string | null
+          date: string
+          details: Json | null
+          id: string
+          receipt_id: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string | null
+          date: string
+          details?: Json | null
+          id?: string
+          receipt_id: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string | null
+          date?: string
+          details?: Json | null
+          id?: string
+          receipt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "history_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          is_admin?: boolean | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      row_colors: {
+        Row: {
+          company_id: string
+          even: string | null
+          header: string | null
+          odd: string | null
+        }
+        Insert: {
+          company_id: string
+          even?: string | null
+          header?: string | null
+          odd?: string | null
+        }
+        Update: {
+          company_id?: string
+          even?: string | null
+          header?: string | null
+          odd?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "row_colors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
