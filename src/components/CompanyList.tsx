@@ -101,51 +101,50 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted, 
                 </Button>
               </Link>
               {user?.isAdmin && (
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => onEditCompany(company)}
-                >
-                  <Edit size={16} />
-                  Edit
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={() => onEditCompany(company)}
+                  >
+                    <Edit size={16} />
+                    Edit
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        className="flex items-center gap-2"
+                        disabled={!!deletingId}
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          Delete Company
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{company.name}"? This action cannot be undone and will permanently remove all delivery receipts associated with this company.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteCompany(company.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </div>
-            
-            {user?.isAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    className="flex items-center gap-2"
-                    disabled={!!deletingId}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-red-500" />
-                      Delete Company
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete "{company.name}"? This action cannot be undone and will permanently remove all delivery receipts associated with this company.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => handleDeleteCompany(company.id)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
           </CardFooter>
         </Card>
       ))}
