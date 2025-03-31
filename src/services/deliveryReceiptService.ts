@@ -76,10 +76,14 @@ export const addDeliveryReceipt = async (receipt: Omit<DeliveryReceipt, "id" | "
       throw error;
     }
     
+    if (!newReceipt || newReceipt.length === 0) {
+      throw new Error('No receipt returned after insertion');
+    }
+    
     console.log('Successfully added receipt, response:', newReceipt);
     
     // Get updated receipts
-    return getDeliveryReceipts(companyId);
+    return await getDeliveryReceipts(companyId);
   } catch (error) {
     console.error("Error adding delivery receipt to database:", error);
     throw error;

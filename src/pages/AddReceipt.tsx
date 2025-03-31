@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { addDeliveryReceipt } from '@/services/deliveryReceiptService';
 import { addHistoryEntry } from '@/services/historyService';
@@ -39,13 +39,24 @@ const AddReceipt = () => {
     try {
       console.log('Adding receipt with data:', { ...formData, companyId });
       
-      const updatedData = await addDeliveryReceipt(formData, companyId);
+      // Make sure companyId is set in formData
+      const dataWithCompanyId = {
+        ...formData,
+        companyId: companyId
+      };
+      
+      const updatedData = await addDeliveryReceipt(dataWithCompanyId, companyId);
       console.log('Receipt added, response:', updatedData);
       
       if (updatedData && updatedData.length > 0) {
         const newReceipt = updatedData[0]; // The new receipt should be at index 0
         
-        await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
+        try {
+          await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
+        } catch (historyError) {
+          console.error('Error adding history entry:', historyError);
+          // Continue even if history entry fails
+        }
         
         toast({
           title: "Succès",
@@ -89,6 +100,7 @@ const AddReceipt = () => {
             onCancel={() => navigate(`/admin/${companyId}`)} 
             companyId={companyId}
             error={error || undefined}
+            isSubmitting={isSubmitting}
           />
         </div>
       </div>

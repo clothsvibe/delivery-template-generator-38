@@ -15,14 +15,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const params = useParams();
 
   useEffect(() => {
-    console.log('Protected route checking auth state:', { isAuthenticated, params });
+    console.log('Protected route checking auth state:', { isAuthenticated, user, params });
     // Short timeout to ensure auth state is fully loaded
     const timer = setTimeout(() => {
       setIsChecking(false);
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [isAuthenticated, params]);
+  }, [isAuthenticated, params, user]);
 
   if (isChecking) {
     return (

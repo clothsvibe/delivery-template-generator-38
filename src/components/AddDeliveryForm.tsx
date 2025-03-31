@@ -5,21 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseNumberInput } from '@/lib/formatters';
 import { AdminFormData, DeliveryReceipt } from '@/types/deliveryReceipt';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AddDeliveryFormProps {
   onSubmit: (data: Omit<DeliveryReceipt, "id" | "total">) => void;
   onCancel: () => void;
-  companyId?: string;
+  companyId: string;
   error?: string;
+  isSubmitting?: boolean;
 }
 
 const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({ 
   onSubmit, 
   onCancel, 
   companyId,
-  error 
+  error,
+  isSubmitting = false
 }) => {
   const [formData, setFormData] = useState<AdminFormData>({
     date: new Date().toISOString().split('T')[0],
@@ -121,8 +123,15 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
         <Button type="button" variant="outline" onClick={onCancel}>
           Annuler
         </Button>
-        <Button type="submit">
-          Ajouter
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Traitement...
+            </>
+          ) : (
+            'Ajouter'
+          )}
         </Button>
       </div>
     </form>
