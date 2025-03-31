@@ -46,6 +46,59 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
   }
 };
 
+// Get delivery receipts for a specific month and year
+export const getMonthlyHistory = async (year: number, month: number): Promise<DeliveryReceipt[]> => {
+  try {
+    // If month is 0, we want to get all receipts for the year
+    const { data, error } = await supabase
+      .from('delivery_receipts')
+      .select('*');
+      
+    if (error) throw error;
+    
+    // Format data
+    const formattedData = data.map(receipt => ({
+      id: receipt.id,
+      date: receipt.date,
+      nb: receipt.nb,
+      montantBL: receipt.montantbl || 0,
+      avance: receipt.avance || 0,
+      total: receipt.total || 0,
+      companyId: receipt.company_id
+    }));
+    
+    // Filter by year and month
+    const filteredData = formattedData.filter(receipt => {
+      if (!receipt.date) return false;
+      
+      // Parse date (assuming format is DD/MM/YYYY)
+      const parts = receipt.date.split('/');
+      if (parts.length !== 3) return false;
+      
+      const receiptYear = parseInt(parts[2]);
+      // If only year filtering is requested
+      if (month === 0) {
+        return receiptYear === year;
+      }
+      
+      // Filter by both year and month
+      const receiptMonth = parseInt(parts[1]);
+      return receiptYear === year && receiptMonth === month;
+    });
+    
+    // Sort by date descending (most recent first)
+    return filteredData.sort((a, b) => {
+      const dateA = formatDateForSorting(a.date);
+      const dateB = formatDateForSorting(b.date);
+      return dateB.localeCompare(dateA);
+    });
+    
+  } catch (error) {
+    console.error("Error loading monthly history from database:", error);
+    throw error;
+  }
+};
+
 // Add a new delivery receipt
 export const addDeliveryReceipt = async (
   receipt: Omit<DeliveryReceipt, "id" | "total">, 

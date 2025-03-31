@@ -81,7 +81,7 @@ const Index = () => {
         {showAddForm ? (
           <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
             <CompanyForm
-              onFormSubmit={() => {
+              onSubmit={() => {
                 setShowAddForm(false);
                 fetchCompanies();
               }}
