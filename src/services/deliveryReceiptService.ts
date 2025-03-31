@@ -1,135 +1,143 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DeliveryReceipt } from "../types/deliveryReceipt";
-import { recalculateReceipts } from "../lib/formatters";
 
-// Get all delivery receipts for a specific company
-export const getDeliveryReceipts = async (companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
-  console.log('Fetching delivery receipts for company:', companyId);
+// Function to format date string for sorting (DD/MM/YYYY -> YYYY-MM-DD)
+const formatDateForSorting = (dateStr: string): string => {
+  // Check if date is in DD/MM/YYYY format
+  if (dateStr && dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+};
+
+// Get all delivery receipts for a company
+export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryReceipt[]> => {
   try {
     const { data, error } = await supabase
       .from('delivery_receipts')
       .select('*')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
+      .eq('company_id', companyId);
       
-    if (error) {
-      console.error('Error in getDeliveryReceipts:', error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log(`Retrieved ${data?.length || 0} delivery receipts`);
-    
-    // Transform database records to DeliveryReceipt format
-    const receipts = (data || []).map(record => ({
-      id: record.id,
-      date: record.date || '',
-      nb: record.nb,
-      montantBL: record.montantbl,
-      avance: record.avance,
-      total: record.total,
-      companyId: record.company_id
+    // Format and sort data by date (most recent first)
+    const formattedData = data.map(receipt => ({
+      id: receipt.id,
+      date: receipt.date,
+      nb: receipt.nb,
+      montantBL: receipt.montantbl || 0, // Handle null values
+      avance: receipt.avance || 0, // Handle null values
+      total: receipt.total || 0, // Handle null values
+      companyId: receipt.company_id
     }));
     
-    return receipts;
+    // Sort by date descending (most recent first)
+    return formattedData.sort((a, b) => {
+      const dateA = formatDateForSorting(a.date);
+      const dateB = formatDateForSorting(b.date);
+      return dateB.localeCompare(dateA);
+    });
+    
   } catch (error) {
     console.error("Error loading delivery receipts from database:", error);
     throw error;
   }
 };
 
-export const addDeliveryReceipt = async (receipt: Omit<DeliveryReceipt, "id" | "total">, companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
-  console.log('Adding new delivery receipt:', receipt, 'for company:', companyId);
-  
+// Add a new delivery receipt
+export const addDeliveryReceipt = async (
+  receipt: Omit<DeliveryReceipt, "id" | "total">, 
+  companyId: string
+): Promise<DeliveryReceipt[]> => {
   try {
-    // Get current receipts to calculate the new total
-    const currentReceipts = await getDeliveryReceipts(companyId);
+    console.log("Adding receipt with data:", receipt, "for company:", companyId);
     
-    // Calculate the new total
-    const lastTotal = currentReceipts.length > 0 ? currentReceipts[0].total : 0;
-    let newTotal = lastTotal;
+    // Calculate total
+    const montantBL = Number(receipt.montantBL) || 0;
+    const avance = Number(receipt.avance) || 0;
+    const total = montantBL - avance;
     
-    if (receipt.montantBL) {
-      newTotal += receipt.montantBL;
-    }
-    
-    // Format the data for insertion
-    const insertData = {
-      company_id: companyId,
-      date: receipt.date,
-      nb: receipt.nb,
-      montantbl: receipt.montantBL,
-      avance: receipt.avance,
-      total: newTotal
-    };
-    
-    console.log('Inserting record with data:', insertData);
-    
-    // Insert the new receipt
-    const { data: newReceipt, error } = await supabase
+    // Insert into database
+    const { error } = await supabase
       .from('delivery_receipts')
-      .insert(insertData)
-      .select();
+      .insert({
+        date: receipt.date,
+        nb: receipt.nb,
+        montantbl: receipt.montantBL, // Lowercase column name in DB
+        avance: receipt.avance,
+        total: total,
+        company_id: companyId
+      });
       
     if (error) {
-      console.error('Error in addDeliveryReceipt:', error);
+      console.error("Insert error:", error);
       throw error;
     }
     
-    if (!newReceipt || newReceipt.length === 0) {
-      throw new Error('No receipt returned after insertion');
-    }
+    // Fetch updated data
+    return getDeliveryReceipts(companyId);
     
-    console.log('Successfully added receipt, response:', newReceipt);
-    
-    // Get updated receipts
-    return await getDeliveryReceipts(companyId);
   } catch (error) {
     console.error("Error adding delivery receipt to database:", error);
     throw error;
   }
 };
 
-export const updateDeliveryReceipt = async (receipt: Partial<DeliveryReceipt> & { id: string }, companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
+// Update an existing delivery receipt
+export const updateDeliveryReceipt = async (
+  receipt: Partial<DeliveryReceipt> & { id: string }, 
+  companyId: string
+): Promise<DeliveryReceipt[]> => {
   try {
-    // Update the receipt
+    const updateData: any = {};
+    
+    if (receipt.date !== undefined) updateData.date = receipt.date;
+    if (receipt.nb !== undefined) updateData.nb = receipt.nb;
+    if (receipt.montantBL !== undefined) updateData.montantbl = receipt.montantBL; // Lowercase column name in DB
+    if (receipt.avance !== undefined) updateData.avance = receipt.avance;
+    
+    // Calculate total if needed
+    if (receipt.montantBL !== undefined || receipt.avance !== undefined) {
+      // Get current values if not provided
+      if (receipt.montantBL === undefined || receipt.avance === undefined) {
+        const { data: currentReceipt } = await supabase
+          .from('delivery_receipts')
+          .select('montantbl, avance')
+          .eq('id', receipt.id)
+          .single();
+          
+        if (currentReceipt) {
+          const montantBL = receipt.montantBL !== undefined ? receipt.montantBL : currentReceipt.montantbl;
+          const avance = receipt.avance !== undefined ? receipt.avance : currentReceipt.avance;
+          updateData.total = Number(montantBL) - Number(avance);
+        }
+      } else {
+        updateData.total = Number(receipt.montantBL) - Number(receipt.avance);
+      }
+    }
+    
+    // Update database
     const { error } = await supabase
       .from('delivery_receipts')
-      .update({
-        date: receipt.date,
-        nb: receipt.nb,
-        montantbl: receipt.montantBL,
-        avance: receipt.avance
-      })
+      .update(updateData)
       .eq('id', receipt.id);
       
     if (error) throw error;
     
-    // Get all receipts after the update
-    const allReceipts = await getDeliveryReceipts(companyId);
-    
-    // Recalculate totals
-    const recalculatedReceipts = recalculateReceipts(allReceipts);
-    
-    // Update all receipts with new totals
-    await Promise.all(recalculatedReceipts.map(async (r) => {
-      await supabase
-        .from('delivery_receipts')
-        .update({ total: r.total })
-        .eq('id', r.id);
-    }));
-    
-    // Get fresh data after recalculation
+    // Fetch updated data
     return getDeliveryReceipts(companyId);
+    
   } catch (error) {
     console.error("Error updating delivery receipt in database:", error);
     throw error;
   }
 };
 
-export const deleteDeliveryReceipt = async (id: string, companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
+// Delete a delivery receipt
+export const deleteDeliveryReceipt = async (id: string, companyId: string): Promise<DeliveryReceipt[]> => {
   try {
-    // Delete the receipt
     const { error } = await supabase
       .from('delivery_receipts')
       .delete()
@@ -137,64 +145,11 @@ export const deleteDeliveryReceipt = async (id: string, companyId: string = 'def
       
     if (error) throw error;
     
-    // Get all receipts after the deletion
-    const allReceipts = await getDeliveryReceipts(companyId);
-    
-    // Recalculate totals
-    const recalculatedReceipts = recalculateReceipts(allReceipts);
-    
-    // Update all receipts with new totals
-    await Promise.all(recalculatedReceipts.map(async (r) => {
-      await supabase
-        .from('delivery_receipts')
-        .update({ total: r.total })
-        .eq('id', r.id);
-    }));
-    
-    // Get fresh data after recalculation
+    // Fetch updated data
     return getDeliveryReceipts(companyId);
+    
   } catch (error) {
     console.error("Error deleting delivery receipt from database:", error);
     throw error;
   }
-};
-
-export const getMonthlyHistory = async (year: number, month: number, companyId: string = 'default'): Promise<DeliveryReceipt[]> => {
-  try {
-    // Format month to have leading zero if needed
-    const monthStr = month.toString().padStart(2, '0');
-    const yearStr = year.toString();
-    
-    // Query receipts for the specific company and date patterns
-    const { data, error } = await supabase
-      .from('delivery_receipts')
-      .select('*')
-      .eq('company_id', companyId)
-      .or(`date.ilike.${yearStr}-${monthStr}%,date.eq.${yearStr}`);
-      
-    if (error) throw error;
-    
-    // Transform database records to DeliveryReceipt format
-    const receipts = data.map(record => ({
-      id: record.id,
-      date: record.date || '',
-      nb: record.nb,
-      montantBL: record.montantbl,
-      avance: record.avance,
-      total: record.total,
-      companyId: record.company_id
-    }));
-    
-    return receipts;
-  } catch (error) {
-    console.error("Error loading monthly history from database:", error);
-    throw error;
-  }
-};
-
-export const getMonthlyTotal = async (year: number, month: number, companyId: string = 'default'): Promise<number> => {
-  const receipts = await getMonthlyHistory(year, month, companyId);
-  if (receipts.length === 0) return 0;
-  // Return the total of the last receipt in the month
-  return receipts[receipts.length - 1].total;
 };
