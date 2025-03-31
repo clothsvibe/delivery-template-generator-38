@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
@@ -26,8 +25,8 @@ const Admin = () => {
   const [companyName, setCompanyName] = useState('Bon de Livraison');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [columnColors, setColumnColors] = useState<ColumnColors>({
-    date: '#182fe2', // Updated to the new standard color
-    nb: '#182fe2', // Updated to the new standard color
+    date: '#182fe2',
+    nb: '#182fe2',
     montantBL: '#0ea5e9',
     avance: '#f97316',
     total: '#22c55e'
@@ -76,7 +75,6 @@ const Admin = () => {
         setCompanyName(settings.name);
         
         if (settings.columnColors) {
-          // Always ensure date and NB columns use our standard color
           setColumnColors({
             ...settings.columnColors,
             date: '#182fe2',
@@ -307,6 +305,7 @@ const Admin = () => {
               <AddDeliveryForm 
                 onSubmit={handleAdd} 
                 onCancel={() => setShowAddForm(false)}
+                companyId={companyId || ''}
               />
             ) : showColorEditor ? (
               <TableColorEditor
