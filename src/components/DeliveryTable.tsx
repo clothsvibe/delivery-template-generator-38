@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -53,7 +54,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const [sortConfig, setSortConfig] = useState<{
     key: keyof DeliveryReceipt | null;
     direction: 'asc' | 'desc' | null;
-  }>({ key: null, direction: null });
+  }>({ key: 'date', direction: 'asc' }); // Default sort by date ascending (oldest first)
   const [editData, setEditData] = useState<Record<string, {
     date: string;
     nb: string; 
@@ -82,7 +83,19 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
-    setTableData(data);
+    if (data) {
+      // Apply initial sort by date (oldest to newest)
+      const sortedData = [...data].sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        
+        return a.date.localeCompare(b.date); // Ascending order (oldest first)
+      });
+      setTableData(sortedData);
+    } else {
+      setTableData([]);
+    }
   }, [data]);
 
   const columns = useMemo<DeliveryTableColumn[]>(() => [
@@ -233,9 +246,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
         if (bValue === null) return -1;
         
         if (sortConfig.key === 'date') {
-          if (a.date < b.date) return sortConfig.direction === 'asc' ? -1 : 1;
-          if (a.date > b.date) return sortConfig.direction === 'asc' ? 1 : -1;
-          return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          
+          // For dates, ensure we sort oldest to newest (ascending) or newest to oldest (descending)
+          return sortConfig.direction === 'asc' 
+            ? a.date.localeCompare(b.date) // Oldest first
+            : b.date.localeCompare(a.date); // Newest first
         }
         
         if (typeof aValue === 'number' && typeof bValue === 'number') {
