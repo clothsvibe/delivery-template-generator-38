@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
@@ -272,7 +273,7 @@ const Admin = () => {
             <Link to="/">
               <Button variant="outline" className="flex items-center gap-2">
                 <Home size={16} />
-                Companies
+                HOME PAGE INDEX
               </Button>
             </Link>
             <Link to="/history">

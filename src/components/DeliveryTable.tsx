@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -319,6 +320,11 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const getRowBackground = (index: number, row: DeliveryReceipt) => {
     if (row.isEditing) return 'bg-blue-50';
     
+    // Check if avance has a text number value
+    if (row.avance !== null && row.avance !== undefined) {
+      return '#FEF7CD'; // Yellow color
+    }
+    
     if (row.date && !isDateFormat(row.date)) {
       return 'bg-green-100';
     }
@@ -556,4 +562,3 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
 };
 
 export default DeliveryTable;
-
