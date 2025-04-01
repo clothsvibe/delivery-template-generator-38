@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -314,16 +313,19 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       }
     }
     
+    if (key === 'avance' && value !== null && value !== undefined && value > 0) {
+      return (
+        <div className="w-full h-full" style={{ backgroundColor: '#FEF7CD' }}>
+          {column.cell ? column.cell({ getValue: () => value }) : String(value || '')}
+        </div>
+      );
+    }
+    
     return column.cell ? column.cell({ getValue: () => value }) : String(value || '');
   };
 
   const getRowBackground = (index: number, row: DeliveryReceipt) => {
     if (row.isEditing) return 'bg-blue-50';
-    
-    // Check if avance has a text number value
-    if (row.avance !== null && row.avance !== undefined) {
-      return '#FEF7CD'; // Yellow color
-    }
     
     if (row.date && !isDateFormat(row.date)) {
       return 'bg-green-100';
@@ -422,10 +424,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     key={row.id}
                     className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''}`}
                     onClick={() => handleRowClick(row)}
-                    style={{ backgroundColor: row.isEditing ? '#e0f2fe' : getRowBackground(index, row) }}
+                    style={{ backgroundColor: getRowBackground(index, row) }}
                   >
                     {columns.map(column => (
-                      <TableCell key={`${row.id}-${column.id}`} className="border-r border-l border-gray-200">
+                      <TableCell 
+                        key={`${row.id}-${column.id}`} 
+                        className="border-r border-l border-gray-200"
+                      >
                         {renderCell(row, column)}
                       </TableCell>
                     ))}
