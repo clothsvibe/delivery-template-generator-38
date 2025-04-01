@@ -313,7 +313,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       }
     }
     
-    if (key === 'avance' && value !== null && value !== undefined && value > 0) {
+    if (key === 'avance' && typeof value === 'number' && value > 0) {
       return (
         <div className="w-full h-full" style={{ backgroundColor: '#FEF7CD' }}>
           {column.cell ? column.cell({ getValue: () => value }) : String(value || '')}
