@@ -107,7 +107,7 @@ export const addDeliveryReceipt = async (
   try {
     console.log("Adding receipt with data:", receipt, "for company:", companyId);
     
-    // Calculate total
+    // Calculate total: montantBL - avance
     const montantBL = Number(receipt.montantBL) || 0;
     const avance = Number(receipt.avance) || 0;
     const total = montantBL - avance;
