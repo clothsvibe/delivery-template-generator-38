@@ -283,10 +283,10 @@ const History = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">History</h1>
-          <Link to="/admin">
+          <Link to="/">
             <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft size={16} />
-              Back to Admin
+              Back to Home
             </Button>
           </Link>
         </div>
