@@ -22,7 +22,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       
     if (error) throw error;
     
-    // Format and sort data by date (most recent first)
+    // Format and sort data by date (oldest first)
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
@@ -33,11 +33,11 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       companyId: receipt.company_id
     }));
     
-    // Sort by date descending (most recent first)
+    // Sort by date ascending (oldest first)
     return formattedData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateB.localeCompare(dateA);
+      return dateA.localeCompare(dateB);
     });
     
   } catch (error) {
@@ -86,11 +86,11 @@ export const getMonthlyHistory = async (year: number, month: number): Promise<De
       return receiptYear === year && receiptMonth === month;
     });
     
-    // Sort by date descending (most recent first)
+    // Sort by date ascending (oldest first)
     return filteredData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateB.localeCompare(dateA);
+      return dateA.localeCompare(dateB);
     });
     
   } catch (error) {
@@ -107,10 +107,22 @@ export const addDeliveryReceipt = async (
   try {
     console.log("Adding receipt with data:", receipt, "for company:", companyId);
     
-    // Calculate total: montantBL - avance
+    // Get existing receipts to calculate running total
+    const existingReceipts = await getDeliveryReceipts(companyId);
+    
+    // Calculate cumulative total from all previous receipts plus this new one
     const montantBL = Number(receipt.montantBL) || 0;
     const avance = Number(receipt.avance) || 0;
-    const total = montantBL - avance;
+    
+    // Calculate current receipt's individual contribution to the total
+    const receiptContribution = montantBL - avance;
+    
+    // Calculate new total based on existing data
+    const previousTotal = existingReceipts.length > 0 
+      ? existingReceipts[existingReceipts.length - 1].total || 0 
+      : 0;
+    
+    const total = previousTotal + receiptContribution;
     
     // Insert into database
     const { error } = await supabase
@@ -151,33 +163,59 @@ export const updateDeliveryReceipt = async (
     if (receipt.montantBL !== undefined) updateData.montantbl = receipt.montantBL; // Lowercase column name in DB
     if (receipt.avance !== undefined) updateData.avance = receipt.avance;
     
-    // Calculate total if needed
-    if (receipt.montantBL !== undefined || receipt.avance !== undefined) {
-      // Get current values if not provided
-      if (receipt.montantBL === undefined || receipt.avance === undefined) {
-        const { data: currentReceipt } = await supabase
-          .from('delivery_receipts')
-          .select('montantbl, avance')
-          .eq('id', receipt.id)
-          .single();
-          
-        if (currentReceipt) {
-          const montantBL = receipt.montantBL !== undefined ? receipt.montantBL : currentReceipt.montantbl;
-          const avance = receipt.avance !== undefined ? receipt.avance : currentReceipt.avance;
-          updateData.total = Number(montantBL) - Number(avance);
-        }
-      } else {
-        updateData.total = Number(receipt.montantBL) - Number(receipt.avance);
-      }
-    }
+    // Get current receipt values if needed for total calculation
+    let currentMontantBL = 0;
+    let currentAvance = 0;
+    let newMontantBL = 0;
+    let newAvance = 0;
     
-    // Update database
-    const { error } = await supabase
+    const { data: currentReceipt } = await supabase
       .from('delivery_receipts')
-      .update(updateData)
-      .eq('id', receipt.id);
+      .select('montantbl, avance')
+      .eq('id', receipt.id)
+      .single();
       
-    if (error) throw error;
+    if (currentReceipt) {
+      currentMontantBL = currentReceipt.montantbl || 0;
+      currentAvance = currentReceipt.avance || 0;
+      
+      newMontantBL = receipt.montantBL !== undefined ? receipt.montantBL : currentMontantBL;
+      newAvance = receipt.avance !== undefined ? receipt.avance : currentAvance;
+      
+      // Calculate the change in values
+      const montantBLDiff = newMontantBL - currentMontantBL;
+      const avanceDiff = newAvance - currentAvance;
+      
+      // Calculate the net change to total
+      const totalDiff = montantBLDiff - avanceDiff;
+      
+      // Update database
+      const { error } = await supabase
+        .from('delivery_receipts')
+        .update({
+          ...updateData,
+          total: supabase.rpc('increment_by', { row_id: receipt.id, amount: totalDiff })
+        })
+        .eq('id', receipt.id);
+        
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
+      
+      // We need to recalculate totals for all subsequent receipts
+      await recalculateSubsequentTotals(receipt.id, totalDiff, companyId);
+    } else {
+      // If we couldn't get the current receipt, fall back to simple update
+      updateData.total = Number(newMontantBL) - Number(newAvance);
+      
+      const { error } = await supabase
+        .from('delivery_receipts')
+        .update(updateData)
+        .eq('id', receipt.id);
+        
+      if (error) throw error;
+    }
     
     // Fetch updated data
     return getDeliveryReceipts(companyId);
@@ -191,12 +229,38 @@ export const updateDeliveryReceipt = async (
 // Delete a delivery receipt
 export const deleteDeliveryReceipt = async (id: string, companyId: string): Promise<DeliveryReceipt[]> => {
   try {
-    const { error } = await supabase
+    // Get the receipt to be deleted
+    const { data: receiptToDelete } = await supabase
       .from('delivery_receipts')
-      .delete()
-      .eq('id', id);
+      .select('montantbl, avance, date')
+      .eq('id', id)
+      .single();
+    
+    if (receiptToDelete) {
+      // Calculate the impact on totals
+      const montantBL = receiptToDelete.montantbl || 0;
+      const avance = receiptToDelete.avance || 0;
+      const totalDiff = -(montantBL - avance); // Negative because we're removing this amount
       
-    if (error) throw error;
+      // Delete the receipt
+      const { error } = await supabase
+        .from('delivery_receipts')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Recalculate totals for all receipts after the deleted one
+      await recalculateSubsequentTotals(id, totalDiff, companyId);
+    } else {
+      // Just delete if we couldn't get the receipt
+      const { error } = await supabase
+        .from('delivery_receipts')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+    }
     
     // Fetch updated data
     return getDeliveryReceipts(companyId);
@@ -204,5 +268,43 @@ export const deleteDeliveryReceipt = async (id: string, companyId: string): Prom
   } catch (error) {
     console.error("Error deleting delivery receipt from database:", error);
     throw error;
+  }
+};
+
+// Helper function to recalculate totals for receipts after a specific date
+const recalculateSubsequentTotals = async (
+  receiptId: string, 
+  totalDiff: number,
+  companyId: string
+): Promise<void> => {
+  try {
+    // Get the date of the modified receipt
+    const { data: receipt } = await supabase
+      .from('delivery_receipts')
+      .select('date')
+      .eq('id', receiptId)
+      .single();
+    
+    if (!receipt || !receipt.date) return;
+    
+    // Get all receipts after this date
+    const { data: subsequentReceipts } = await supabase
+      .from('delivery_receipts')
+      .select('id, date, montantbl, avance, total')
+      .eq('company_id', companyId)
+      .gt('date', receipt.date)
+      .order('date', { ascending: true });
+    
+    if (!subsequentReceipts || subsequentReceipts.length === 0) return;
+    
+    // Update each subsequent receipt's total
+    for (const subReceipt of subsequentReceipts) {
+      await supabase
+        .from('delivery_receipts')
+        .update({ total: (subReceipt.total || 0) + totalDiff })
+        .eq('id', subReceipt.id);
+    }
+  } catch (error) {
+    console.error("Error recalculating subsequent totals:", error);
   }
 };
