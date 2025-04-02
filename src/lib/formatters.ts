@@ -1,4 +1,3 @@
-
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 
 export const formatCurrency = (value: number | null | undefined): string => {
@@ -8,6 +7,14 @@ export const formatCurrency = (value: number | null | undefined): string => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+};
+
+// For NB values, format without commas
+export const formatNB = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '';
+  
+  // Simply return the number as a string without any formatting
+  return String(Math.round(value));
 };
 
 // New formatter for PDF to use spaces instead of slashes for currency values
@@ -84,7 +91,7 @@ export const exportToExcel = (data: DeliveryReceipt[], companyName: string): voi
     // Prepare data for export
     const workbookData = data.map(item => ({
       Date: item.date ? formatDate(item.date) : '',
-      NB: item.nb !== null ? formatCurrency(item.nb) : '',
+      NB: item.nb !== null ? formatNB(item.nb) : '',
       'Montant BL': formatCurrency(item.montantBL),
       Avance: formatCurrency(item.avance),
       Total: formatCurrency(item.total)
@@ -120,7 +127,7 @@ export const exportToPDF = (data: DeliveryReceipt[], companyName: string): void 
       // Prepare table data with the new formatter for currency values
       const tableData = data.map(item => [
         item.date ? formatDate(item.date) : '', // Keep date format unchanged
-        item.nb !== null ? formatCurrencyForPDF(item.nb) : '', // Use new formatter for numeric values
+        item.nb !== null ? formatNB(item.nb) : '', // Use new formatter for NB values
         formatCurrencyForPDF(item.montantBL),
         formatCurrencyForPDF(item.avance),
         formatCurrencyForPDF(item.total)

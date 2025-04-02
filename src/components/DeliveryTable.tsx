@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
@@ -11,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeliveryReceipt, DeliveryTableColumn, ColumnColors, RowColors } from '@/types/deliveryReceipt';
-import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF } from '@/lib/formatters';
+import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF, formatNB } from '@/lib/formatters';
 import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X, Settings } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,7 +53,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const [sortConfig, setSortConfig] = useState<{
     key: keyof DeliveryReceipt | null;
     direction: 'asc' | 'desc' | null;
-  }>({ key: 'date', direction: 'asc' }); // Default sort by date ascending (oldest first)
+  }>({ key: 'date', direction: 'asc' });
   const [editData, setEditData] = useState<Record<string, {
     date: string;
     nb: string; 
@@ -84,13 +83,12 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
 
   useEffect(() => {
     if (data) {
-      // Apply initial sort by date (oldest to newest)
       const sortedData = [...data].sort((a, b) => {
         if (!a.date && !b.date) return 0;
         if (!a.date) return 1;
         if (!b.date) return -1;
         
-        return a.date.localeCompare(b.date); // Ascending order (oldest first)
+        return a.date.localeCompare(b.date);
       });
       setTableData(sortedData);
     } else {
@@ -111,7 +109,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       id: 'nb',
       header: 'NB',
       accessorKey: 'nb',
-      cell: (info) => info.getValue() ? formatCurrency(info.getValue()) : '',
+      cell: (info) => info.getValue() ? formatNB(info.getValue()) : '',
       enableSorting: true,
       enableEditing: true,
     },
@@ -249,10 +247,9 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
           if (!a.date) return 1;
           if (!b.date) return -1;
           
-          // For dates, ensure we sort oldest to newest (ascending) or newest to oldest (descending)
           return sortConfig.direction === 'asc' 
-            ? a.date.localeCompare(b.date) // Oldest first
-            : b.date.localeCompare(a.date); // Newest first
+            ? a.date.localeCompare(b.date)
+            : b.date.localeCompare(a.date);
         }
         
         if (typeof aValue === 'number' && typeof bValue === 'number') {

@@ -55,7 +55,7 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-md bg-white">
+    <form onSubmit={handleSubmit} className="space-y-4 p-3 sm:p-4 border rounded-md bg-white w-full">
       <h3 className="text-lg font-medium">Ajouter Nouveau Bon de Livraison</h3>
       
       {error && (
@@ -65,9 +65,9 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
         </Alert>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date" style={{ color: '#182fe2' }}>Date</Label>
+          <Label htmlFor="date" className="text-table-dateNb">Date</Label>
           <Input
             id="date"
             name="date"
@@ -76,20 +76,20 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
             onChange={handleChange}
             required
             placeholder="YYYY-MM-DD"
-            className="border-[#182fe2] focus:ring-[#182fe2]"
+            className="border-table-dateNb focus:ring-table-dateNb w-full"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="nb" style={{ color: '#182fe2' }}>NB</Label>
+          <Label htmlFor="nb" className="text-table-dateNb">NB</Label>
           <Input
             id="nb"
             name="nb"
             type="text"
             value={formData.nb}
             onChange={handleChange}
-            placeholder="0.00"
-            className="border-[#182fe2] focus:ring-[#182fe2]"
+            placeholder="0"
+            className="border-table-dateNb focus:ring-table-dateNb w-full"
           />
         </div>
         
@@ -101,8 +101,9 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
             type="text"
             value={formData.montantBL}
             onChange={handleChange}
-            placeholder="0.00"
+            placeholder="0"
             required
+            className="w-full"
           />
         </div>
         
@@ -114,16 +115,26 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
             type="text"
             value={formData.avance}
             onChange={handleChange}
-            placeholder="0.00"
+            placeholder="0"
+            className="w-full"
           />
         </div>
       </div>
       
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          className="w-full sm:w-auto"
+        >
           Annuler
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
