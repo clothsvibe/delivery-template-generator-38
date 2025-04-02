@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 
@@ -189,18 +188,34 @@ export const updateDeliveryReceipt = async (
       // Calculate the net change to total
       const totalDiff = montantBLDiff - avanceDiff;
       
-      // Update database
+      // First update the fields
       const { error } = await supabase
         .from('delivery_receipts')
-        .update({
-          ...updateData,
-          total: supabase.rpc('increment_by', { row_id: receipt.id, amount: totalDiff })
-        })
+        .update(updateData)
         .eq('id', receipt.id);
         
       if (error) {
         console.error("Update error:", error);
         throw error;
+      }
+      
+      // Then update the total separately - either by direct calculation or by another query
+      // Get the current total first
+      const { data: currentTotalData } = await supabase
+        .from('delivery_receipts')
+        .select('total')
+        .eq('id', receipt.id)
+        .single();
+        
+      if (currentTotalData) {
+        const currentTotal = currentTotalData.total || 0;
+        const newTotal = currentTotal + totalDiff;
+        
+        // Now update the total
+        await supabase
+          .from('delivery_receipts')
+          .update({ total: newTotal })
+          .eq('id', receipt.id);
       }
       
       // We need to recalculate totals for all subsequent receipts
