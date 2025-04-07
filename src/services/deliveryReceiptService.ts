@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 
@@ -21,7 +22,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       
     if (error) throw error;
     
-    // Format and sort data by date (oldest first)
+    // Format and sort data by date (newest first)
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
@@ -32,11 +33,11 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       companyId: receipt.company_id
     }));
     
-    // Sort by date ascending (oldest first)
+    // Sort by date descending (newest first)
     return formattedData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateA.localeCompare(dateB);
+      return dateB.localeCompare(dateA); // Changed from dateA.localeCompare(dateB) to reverse the order
     });
     
   } catch (error) {
@@ -85,11 +86,11 @@ export const getMonthlyHistory = async (year: number, month: number): Promise<De
       return receiptYear === year && receiptMonth === month;
     });
     
-    // Sort by date ascending (oldest first)
+    // Sort by date descending (newest first)
     return filteredData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateA.localeCompare(dateB);
+      return dateB.localeCompare(dateA); // Changed to sort newest first
     });
     
   } catch (error) {
@@ -106,6 +107,13 @@ export const addDeliveryReceipt = async (
   try {
     console.log("Adding receipt with data:", receipt, "for company:", companyId);
     
+    // Format date to consistent DD/MM/YYYY format if it's in YYYY-MM-DD format
+    let formattedDate = receipt.date;
+    if (formattedDate && formattedDate.includes('-') && !formattedDate.includes('/')) {
+      const [year, month, day] = formattedDate.split('-');
+      formattedDate = `${day}/${month}/${year}`;
+    }
+    
     // Get existing receipts to calculate running total
     const existingReceipts = await getDeliveryReceipts(companyId);
     
@@ -118,7 +126,7 @@ export const addDeliveryReceipt = async (
     
     // Calculate new total based on existing data
     const previousTotal = existingReceipts.length > 0 
-      ? existingReceipts[existingReceipts.length - 1].total || 0 
+      ? existingReceipts[0].total || 0 // Now using index 0 since sorted newest first
       : 0;
     
     const total = previousTotal + receiptContribution;
@@ -127,7 +135,7 @@ export const addDeliveryReceipt = async (
     const { error } = await supabase
       .from('delivery_receipts')
       .insert({
-        date: receipt.date,
+        date: formattedDate, // Use formatted date
         nb: receipt.nb,
         montantbl: receipt.montantBL, // Lowercase column name in DB
         avance: receipt.avance,
@@ -157,7 +165,16 @@ export const updateDeliveryReceipt = async (
   try {
     const updateData: any = {};
     
-    if (receipt.date !== undefined) updateData.date = receipt.date;
+    // Format date to consistent DD/MM/YYYY format if it's in YYYY-MM-DD format
+    if (receipt.date !== undefined) {
+      if (receipt.date.includes('-') && !receipt.date.includes('/')) {
+        const [year, month, day] = receipt.date.split('-');
+        updateData.date = `${day}/${month}/${year}`;
+      } else {
+        updateData.date = receipt.date;
+      }
+    }
+    
     if (receipt.nb !== undefined) updateData.nb = receipt.nb;
     if (receipt.montantBL !== undefined) updateData.montantbl = receipt.montantBL; // Lowercase column name in DB
     if (receipt.avance !== undefined) updateData.avance = receipt.avance;

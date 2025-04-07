@@ -10,11 +10,9 @@ export const formatCurrency = (value: number | null | undefined): string => {
 };
 
 // For NB values, format without commas
-export const formatNB = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '';
-  
-  // Simply return the number as a string without any formatting
-  return String(Math.round(value));
+export const formatNB = (nb: number | null | undefined): string => {
+  if (nb === null || nb === undefined) return '';
+  return nb.toString();
 };
 
 // New formatter for PDF to use spaces instead of slashes for currency values
