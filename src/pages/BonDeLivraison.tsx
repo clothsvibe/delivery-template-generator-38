@@ -43,7 +43,7 @@ const BonDeLivraison = () => {
   const fetchData = async (companyId: string) => {
     try {
       setLoading(true);
-      // Fetch company-specific delivery receipts
+      // Fetch company-specific delivery receipts (will be sorted oldest first by the service)
       const data = await getDeliveryReceipts(companyId);
       setDeliveryData(data);
     } catch (error) {

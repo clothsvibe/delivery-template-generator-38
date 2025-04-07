@@ -55,6 +55,7 @@ const Admin = () => {
   const fetchData = async (companyId: string) => {
     try {
       setLoading(true);
+      // The service now returns data sorted by date (oldest first)
       const data = await getDeliveryReceipts(companyId);
       setDeliveryData(data);
     } catch (error) {

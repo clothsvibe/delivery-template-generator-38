@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 import { recalculateReceipts } from "@/lib/formatters";
@@ -22,7 +23,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       
     if (error) throw error;
     
-    // Format and sort data by date (newest first)
+    // Format and sort data by date (oldest first)
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
@@ -33,11 +34,11 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
       companyId: receipt.company_id
     }));
     
-    // Sort by date descending (newest first)
+    // Sort by date ascending (oldest first)
     return formattedData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateB.localeCompare(dateA); // Newest first
+      return dateA.localeCompare(dateB); // Oldest first
     });
     
   } catch (error) {
