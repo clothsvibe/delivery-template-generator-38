@@ -70,11 +70,20 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted, 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {companies.map((company) => (
         <Card key={company.id} className="overflow-hidden border border-gray-200 shadow-sm">
-          <CardHeader className="bg-gray-50 border-b border-gray-200">
+          <CardHeader className="bg-gray-50 border-b border-gray-200 flex flex-row justify-between items-center">
             <CardTitle className="text-lg font-medium">{company.name}</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="p-1 h-8 w-8"
+              onClick={() => onEditCompany(company)}
+            >
+              <Edit size={16} />
+              <span className="sr-only">Edit {company.name}</span>
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="flex items-center justify-center h-48 bg-gray-100">
+            <div className="flex items-center justify-center h-48 bg-gray-100 relative group">
               {company.logo ? (
                 <img 
                   src={company.logo} 
@@ -84,10 +93,20 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted, 
               ) : (
                 <div className="text-gray-400 font-medium">No Logo</div>
               )}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <Button 
+                  variant="secondary" 
+                  className="bg-white bg-opacity-90"
+                  onClick={() => onEditCompany(company)}
+                >
+                  <Edit size={16} className="mr-2" />
+                  Edit Company
+                </Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between p-4 bg-white">
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Link to={`/bondelivraison/${company.id}`}>
                 <Button variant="outline" className="flex items-center gap-2">
                   <Eye size={16} />
@@ -131,16 +150,6 @@ const CompanyList: React.FC<CompanyListProps> = ({ companies, onCompanyDeleted, 
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              {user?.isAdmin && (
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => onEditCompany(company)}
-                >
-                  <Edit size={16} />
-                  Edit
-                </Button>
-              )}
             </div>
           </CardFooter>
         </Card>
