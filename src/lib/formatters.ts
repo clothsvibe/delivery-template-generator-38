@@ -1,3 +1,4 @@
+
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 
 export const formatCurrency = (value: number | null | undefined): string => {
@@ -12,6 +13,7 @@ export const formatCurrency = (value: number | null | undefined): string => {
 // For NB values, format without commas
 export const formatNB = (nb: number | null | undefined): string => {
   if (nb === null || nb === undefined) return '';
+  // Return just the number without commas
   return nb.toString();
 };
 
@@ -57,28 +59,33 @@ export const parseNumberInput = (value: string): number | null => {
   return isNaN(parsed) ? null : parsed;
 };
 
+// Updated to just calculate the individual contribution of this receipt
 export const calculateTotal = (montantBL: number | null, avance: number | null): number => {
   const montant = montantBL || 0;
   const avanceValue = avance || 0;
   return montant - avanceValue;
 };
 
+// Improved recalculation function to properly implement running totals
 export const recalculateReceipts = (receipts: DeliveryReceipt[]): DeliveryReceipt[] => {
   let runningTotal = 0;
   
-  return receipts.map((receipt, index) => {
-    // Calculate the individual total for this receipt
-    const itemTotal = calculateTotal(receipt.montantBL, receipt.avance);
+  // First sort by date (oldest to newest)
+  const sortedReceipts = [...receipts].sort((a, b) => {
+    if (!a.date || !b.date) return 0;
+    return a.date.localeCompare(b.date);
+  });
+  
+  return sortedReceipts.map((receipt) => {
+    // Calculate the individual contribution of this receipt
+    const individualContribution = calculateTotal(receipt.montantBL, receipt.avance);
     
     // Add to running total
-    runningTotal += itemTotal;
-    
-    // For the first item, we don't add previous totals
-    const finalTotal = index === 0 ? itemTotal : runningTotal;
+    runningTotal += individualContribution;
     
     return {
       ...receipt,
-      total: finalTotal
+      total: runningTotal
     };
   });
 };
