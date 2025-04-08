@@ -2,7 +2,7 @@
 export interface DeliveryReceipt {
   id: string;
   date: string;
-  nb: number | null;
+  nb: string | number | null;
   montantBL: number | null;
   avance: number | null;
   total: number;

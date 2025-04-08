@@ -1,4 +1,3 @@
-
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 
 export const formatCurrency = (value: number | null | undefined): string => {
@@ -10,10 +9,10 @@ export const formatCurrency = (value: number | null | undefined): string => {
   }).format(value);
 };
 
-// For NB values, format without commas
-export const formatNB = (nb: number | null | undefined): string => {
+// For NB values, updated to handle strings or numbers
+export const formatNB = (nb: string | number | null | undefined): string => {
   if (nb === null || nb === undefined) return '';
-  // Return just the number without commas
+  // Return as a string, whether it was originally a number or string
   return nb.toString();
 };
 

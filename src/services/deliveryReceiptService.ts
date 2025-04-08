@@ -27,7 +27,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
-      nb: receipt.nb,
+      nb: receipt.nb, // Keep as is - could be string or number
       montantBL: receipt.montantbl || 0, // Handle null values
       avance: receipt.avance || 0, // Handle null values
       total: receipt.total || 0, // Handle null values
@@ -135,7 +135,7 @@ export const addDeliveryReceipt = async (
       .from('delivery_receipts')
       .insert({
         date: formattedDate, // Use formatted date
-        nb: receipt.nb,
+        nb: receipt.nb, // Keep nb as is - could be string or number
         montantbl: receipt.montantBL, // Lowercase column name in DB
         avance: receipt.avance,
         total: total,

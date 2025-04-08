@@ -202,7 +202,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     const updatedReceipt: DeliveryReceipt = {
       id,
       date: rowData.date,
-      nb: parseNumberInput(rowData.nb),
+      nb: rowData.nb,
       montantBL: parseNumberInput(rowData.montantBL),
       avance: parseNumberInput(rowData.avance),
       total: 0,
@@ -307,9 +307,18 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
             className="h-8 w-full"
           />
         );
-      } else if (key === 'nb' || key === 'montantBL' || key === 'avance') {
+      } else if (key === 'nb') {
+        return (
+          <Input 
+            type="text" 
+            value={editData[row.id].nb}
+            onChange={(e) => handleEditChange(row.id, 'nb', e.target.value)}
+            className="h-8 w-full"
+            placeholder="Bon..."
+          />
+        );
+      } else if (key === 'montantBL' || key === 'avance') {
         const fieldMap: Record<string, string> = {
-          nb: 'nb',
           montantBL: 'montantBL',
           avance: 'avance'
         };
