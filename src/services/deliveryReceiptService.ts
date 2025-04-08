@@ -1,6 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { DeliveryReceipt } from "../types/deliveryReceipt";
 import { recalculateReceipts } from "@/lib/formatters";
+import { addHistoryEntry } from "./historyService";
 
 // Function to format date string for sorting (DD/MM/YYYY -> YYYY-MM-DD)
 const formatDateForSorting = (dateStr: string): string => {
@@ -37,7 +39,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
     return formattedData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateA.localeCompare(dateB); // Oldest first
+      return dateA.localeCompare(dateB); // Oldest first - Fixed sort order
     });
     
   } catch (error) {
@@ -86,11 +88,11 @@ export const getMonthlyHistory = async (year: number, month: number): Promise<De
       return receiptYear === year && receiptMonth === month;
     });
     
-    // Sort by date descending (newest first)
+    // Sort by date ascending (oldest first) - ensure consistent sorting
     return filteredData.sort((a, b) => {
       const dateA = formatDateForSorting(a.date);
       const dateB = formatDateForSorting(b.date);
-      return dateB.localeCompare(dateA); // Changed to sort newest first
+      return dateA.localeCompare(dateB); // Changed to sort oldest first
     });
     
   } catch (error) {
@@ -130,7 +132,7 @@ export const addDeliveryReceipt = async (
     const total = previousTotal + receiptContribution;
     
     // Insert into database - use type assertion to handle the mismatch
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('delivery_receipts')
       .insert({
         date: formattedDate, 
@@ -139,11 +141,27 @@ export const addDeliveryReceipt = async (
         avance: receipt.avance,
         total: total,
         company_id: companyId
-      } as any); // Use type assertion to bypass TypeScript type checking
+      } as any)
+      .select();
       
     if (error) {
       console.error("Insert error:", error);
       throw error;
+    }
+    
+    // Add history entry for this new receipt
+    if (data && data.length > 0) {
+      const newReceipt = {
+        id: data[0].id,
+        date: data[0].date,
+        nb: data[0].nb,
+        montantBL: data[0].montantbl,
+        avance: data[0].avance,
+        total: data[0].total,
+        companyId: data[0].company_id
+      };
+      
+      await addHistoryEntry('add', newReceipt.id, newReceipt, companyId);
     }
     
     // Fetch updated data
@@ -161,6 +179,9 @@ export const updateDeliveryReceipt = async (
   companyId: string
 ): Promise<DeliveryReceipt[]> => {
   try {
+    // First record the update in history before making changes
+    await addHistoryEntry('update', receipt.id, receipt, companyId);
+    
     const updateData: any = {};
     
     // Format date to consistent DD/MM/YYYY format if it's in YYYY-MM-DD format
@@ -177,7 +198,7 @@ export const updateDeliveryReceipt = async (
     if (receipt.montantBL !== undefined) updateData.montantbl = receipt.montantBL; // Lowercase column name in DB
     if (receipt.avance !== undefined) updateData.avance = receipt.avance;
     
-    // First update the fields without updating the total
+    // Update the fields without updating the total
     const { error } = await supabase
       .from('delivery_receipts')
       .update(updateData)
@@ -236,6 +257,28 @@ export const updateDeliveryReceipt = async (
 // Delete a delivery receipt and recalculate all remaining totals
 export const deleteDeliveryReceipt = async (id: string, companyId: string): Promise<DeliveryReceipt[]> => {
   try {
+    // First get the receipt to be deleted for history tracking
+    const { data: receiptToDelete } = await supabase
+      .from('delivery_receipts')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (receiptToDelete) {
+      // Record the deletion in history
+      const deletedReceipt = {
+        id: receiptToDelete.id,
+        date: receiptToDelete.date,
+        nb: receiptToDelete.nb,
+        montantBL: receiptToDelete.montantbl,
+        avance: receiptToDelete.avance,
+        total: receiptToDelete.total,
+        companyId: receiptToDelete.company_id
+      };
+      
+      await addHistoryEntry('delete', id, deletedReceipt, companyId);
+    }
+    
     // Delete the receipt
     const { error } = await supabase
       .from('delivery_receipts')

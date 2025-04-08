@@ -139,7 +139,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       if (sortConfig.direction === 'asc') {
         direction = 'desc';
       } else if (sortConfig.direction === 'desc') {
-        direction = null;
+        direction = 'asc';
       }
     }
     

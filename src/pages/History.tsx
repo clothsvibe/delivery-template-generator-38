@@ -153,7 +153,36 @@ const History = () => {
     }
   };
 
-  const handleRestoreSelected = () => {
+  const handleRestore = async (receiptId: string) => {
+    try {
+      const response = await restoreFromHistory(receiptId);
+      
+      if (response.success && response.data) {
+        toast({
+          title: "Restoration Successful",
+          description: "The receipt has been restored from history.",
+        });
+        
+        // Here you would typically navigate back to the admin page
+        // or refresh the current page to show the changes
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Restoration Failed",
+          description: "Could not restore the receipt from history.",
+        });
+      }
+    } catch (error) {
+      console.error('Error restoring from history:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while restoring from history.",
+      });
+    }
+  };
+
+  const handleRestoreSelected = async () => {
     if (selectedEntries.length === 0) {
       toast({
         title: "No Entries Selected",
@@ -162,34 +191,21 @@ const History = () => {
       return;
     }
 
-    toast({
-      title: "Restore Feature",
-      description: "Restore functionality would be implemented here for the selected entries.",
-    });
-
-    setSelectedEntries([]);
-  };
-
-  const startEditing = (entry: HistoryEntry) => {
-    setEditingEntry(entry);
-  };
-
-  const cancelEditing = () => {
-    setEditingEntry(null);
-    form.reset();
-  };
-
-  const saveEditedEntry = () => {
-    if (!editingEntry) return;
-    
-    const formValues = form.getValues();
-    
-    toast({
-      title: "Entry Updated",
-      description: `Entry ${editingEntry.receiptId.substring(0, 8)}... has been updated.`,
-    });
-    
-    cancelEditing();
+    try {
+      // Loop through all selected entries and restore them
+      for (const receiptId of selectedEntries) {
+        await handleRestore(receiptId);
+      }
+      
+      setSelectedEntries([]);
+    } catch (error) {
+      console.error('Error restoring selected entries:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while restoring selected entries.",
+      });
+    }
   };
 
   const exportSelected = (type: 'excel' | 'pdf') => {
