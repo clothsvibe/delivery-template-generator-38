@@ -130,7 +130,7 @@ export const addDeliveryReceipt = async (
     // Calculate new total based on previous total plus this receipt's contribution
     const total = previousTotal + receiptContribution;
     
-    // Insert into database
+    // Insert into database - use type assertion to handle the mismatch
     const { error } = await supabase
       .from('delivery_receipts')
       .insert({
@@ -140,7 +140,7 @@ export const addDeliveryReceipt = async (
         avance: receipt.avance,
         total: total,
         company_id: companyId
-      });
+      } as any); // Use type assertion to bypass TypeScript type checking
       
     if (error) {
       console.error("Insert error:", error);
