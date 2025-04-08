@@ -83,14 +83,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
 
   useEffect(() => {
     if (data) {
-      const sortedData = [...data].sort((a, b) => {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        
-        return a.date.localeCompare(b.date);
-      });
-      setTableData(sortedData);
+      setTableData(data);
     } else {
       setTableData([]);
     }
@@ -247,9 +240,20 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
           if (!a.date) return 1;
           if (!b.date) return -1;
           
+          const formatDateStr = (dateStr: string): string => {
+            if (dateStr && dateStr.includes('/')) {
+              const [day, month, year] = dateStr.split('/');
+              return `${year}-${month}-${day}`;
+            }
+            return dateStr;
+          };
+          
+          const dateA = formatDateStr(a.date);
+          const dateB = formatDateStr(b.date);
+          
           return sortConfig.direction === 'asc' 
-            ? a.date.localeCompare(b.date)
-            : b.date.localeCompare(a.date);
+            ? dateA.localeCompare(dateB)
+            : dateB.localeCompare(dateA);
         }
         
         if (typeof aValue === 'number' && typeof bValue === 'number') {

@@ -124,7 +124,7 @@ export const addDeliveryReceipt = async (
     const receiptContribution = montantBL - avance;
     
     // Get the previous total
-    // Since getDeliveryReceipts returns newest first, we need to check the last element for the oldest
+    // Since getDeliveryReceipts returns oldest first, we need to check the last element for the newest
     const previousTotal = existingReceipts.length > 0 ? existingReceipts[existingReceipts.length - 1].total || 0 : 0;
     
     // Calculate new total based on previous total plus this receipt's contribution
