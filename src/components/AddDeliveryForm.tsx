@@ -47,7 +47,8 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
     
     onSubmit({
       date: formData.date,
-      nb: parseNumberInput(formData.nb),
+      // For nb, we pass the string value directly without parsing as a number
+      nb: formData.nb,
       montantBL: parseNumberInput(formData.montantBL),
       avance: parseNumberInput(formData.avance),
       companyId: companyId,
@@ -85,10 +86,10 @@ const AddDeliveryForm: React.FC<AddDeliveryFormProps> = ({
           <Input
             id="nb"
             name="nb"
-            type="text"
+            type="text" 
             value={formData.nb}
             onChange={handleChange}
-            placeholder="0"
+            placeholder="Bon 2702..."
             className="border-table-dateNb focus:ring-table-dateNb w-full"
           />
         </div>
