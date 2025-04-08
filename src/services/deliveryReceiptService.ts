@@ -130,17 +130,17 @@ export const addDeliveryReceipt = async (
     // Calculate new total based on previous total plus this receipt's contribution
     const total = previousTotal + receiptContribution;
     
-    // Insert into database - explicitly cast nb to proper type expected by database
+    // Insert into database - explicitly specify types for the insert operation
     const { error } = await supabase
       .from('delivery_receipts')
       .insert({
-        date: formattedDate, // Use formatted date
-        nb: receipt.nb, // Keep nb as is - could be string or number
-        montantbl: receipt.montantBL, // Lowercase column name in DB
+        date: formattedDate, 
+        nb: receipt.nb, // This can be string or number now
+        montantbl: receipt.montantBL,
         avance: receipt.avance,
         total: total,
         company_id: companyId
-      });
+      } as any); // Use type assertion to overcome TypeScript limitation
       
     if (error) {
       console.error("Insert error:", error);
