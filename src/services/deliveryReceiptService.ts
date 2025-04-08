@@ -27,7 +27,7 @@ export const getDeliveryReceipts = async (companyId: string): Promise<DeliveryRe
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
-      nb: receipt.nb, // Keep as is - could be string or number
+      nb: receipt.nb, // Keep as is - now text type
       montantBL: receipt.montantbl || 0, // Handle null values
       avance: receipt.avance || 0, // Handle null values
       total: receipt.total || 0, // Handle null values
@@ -61,7 +61,7 @@ export const getMonthlyHistory = async (year: number, month: number): Promise<De
     const formattedData = data.map(receipt => ({
       id: receipt.id,
       date: receipt.date,
-      nb: receipt.nb,
+      nb: receipt.nb, // Now text type
       montantBL: receipt.montantbl || 0,
       avance: receipt.avance || 0,
       total: receipt.total || 0,
@@ -130,17 +130,17 @@ export const addDeliveryReceipt = async (
     // Calculate new total based on previous total plus this receipt's contribution
     const total = previousTotal + receiptContribution;
     
-    // Insert into database - explicitly specify types for the insert operation
+    // Insert into database
     const { error } = await supabase
       .from('delivery_receipts')
       .insert({
         date: formattedDate, 
-        nb: receipt.nb, // This can be string or number now
+        nb: receipt.nb, // Now accepting text values
         montantbl: receipt.montantBL,
         avance: receipt.avance,
         total: total,
         company_id: companyId
-      } as any); // Use type assertion to overcome TypeScript limitation
+      });
       
     if (error) {
       console.error("Insert error:", error);

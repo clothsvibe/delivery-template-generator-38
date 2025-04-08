@@ -79,7 +79,7 @@ export type Database = {
           date: string | null
           id: string
           montantbl: number | null
-          nb: number | null
+          nb: string | null
           total: number
           updated_at: string | null
         }
@@ -90,7 +90,7 @@ export type Database = {
           date?: string | null
           id?: string
           montantbl?: number | null
-          nb?: number | null
+          nb?: string | null
           total: number
           updated_at?: string | null
         }
@@ -101,7 +101,7 @@ export type Database = {
           date?: string | null
           id?: string
           montantbl?: number | null
-          nb?: number | null
+          nb?: string | null
           total?: number
           updated_at?: string | null
         }
