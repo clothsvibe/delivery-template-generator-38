@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { formatDate, formatCurrency, exportToExcel, exportToPDF } from '@/lib/formatters';
+import { formatDate, formatCurrency, formatNB, exportToExcel, exportToPDF } from '@/lib/formatters';
 import { HistoryEntry, CompanySettings, DeliveryReceipt } from '@/types/deliveryReceipt';
 import { getCompanySettings } from '@/services/companyService';
 import { getHistoryEntries, clearHistory } from '@/services/historyService';
@@ -45,10 +44,8 @@ const History = () => {
         const entries = await getHistoryEntries();
         setHistoryEntries(entries);
         
-        // Load company settings
         const mainCompany = await getCompanySettings();
         
-        // For now we just have one company, but this structure allows for multiple
         setCompanies([
           { id: 'default', name: mainCompany.name, colorTheme: mainCompany.colorTheme }
         ]);
@@ -111,7 +108,6 @@ const History = () => {
   };
 
   const handleExportToExcel = (entries: HistoryEntry[]) => {
-    // Convert history entries to delivery receipts format for export
     const exportData: DeliveryReceipt[] = entries.map(entry => ({
       id: entry.receiptId,
       date: entry.details.date || entry.date,
@@ -131,7 +127,6 @@ const History = () => {
   };
 
   const handleExportToPDF = (entries: HistoryEntry[]) => {
-    // Convert history entries to delivery receipts format for export
     const exportData: DeliveryReceipt[] = entries.map(entry => ({
       id: entry.receiptId,
       date: entry.details.date || entry.date,
@@ -172,7 +167,6 @@ const History = () => {
       description: "Restore functionality would be implemented here for the selected entries.",
     });
 
-    // Clear selection after operation
     setSelectedEntries([]);
   };
 
@@ -190,13 +184,11 @@ const History = () => {
     
     const formValues = form.getValues();
     
-    // In a real implementation, this would update the history entry
     toast({
       title: "Entry Updated",
       description: `Entry ${editingEntry.receiptId.substring(0, 8)}... has been updated.`,
     });
     
-    // Reset form and editing state
     cancelEditing();
   };
 
@@ -220,7 +212,6 @@ const History = () => {
     }
   };
 
-  // UI Component for edit dialog/drawer 
   const EditEntryUI = () => (
     <>
       <Form {...form}>
@@ -426,7 +417,7 @@ const History = () => {
                                 {entry.details && (
                                   <div className="text-sm">
                                     {entry.details.date && <div>Date: {formatDate(entry.details.date)}</div>}
-                                    {entry.details.nb !== undefined && <div>NB: {formatCurrency(entry.details.nb)}</div>}
+                                    {entry.details.nb !== undefined && <div>NB: {formatNB(entry.details.nb)}</div>}
                                     {entry.details.montantBL !== undefined && <div>Montant BL: {formatCurrency(entry.details.montantBL)}</div>}
                                     {entry.details.avance !== undefined && <div>Avance: {formatCurrency(entry.details.avance)}</div>}
                                     {entry.details.total !== undefined && <div>Total: {formatCurrency(entry.details.total)}</div>}

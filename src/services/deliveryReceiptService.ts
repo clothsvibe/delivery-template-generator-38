@@ -130,7 +130,7 @@ export const addDeliveryReceipt = async (
     // Calculate new total based on previous total plus this receipt's contribution
     const total = previousTotal + receiptContribution;
     
-    // Insert into database
+    // Insert into database - explicitly cast nb to proper type expected by database
     const { error } = await supabase
       .from('delivery_receipts')
       .insert({
