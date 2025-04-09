@@ -62,6 +62,7 @@ export interface TableSettings {
 }
 
 export interface HistoryEntry {
+  id: string; // Added this missing property
   date: string;
   action: 'add' | 'update' | 'delete';
   receiptId: string;

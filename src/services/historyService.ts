@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { HistoryEntry, DeliveryReceipt } from "@/types/deliveryReceipt";
 
@@ -12,6 +13,7 @@ export const getHistoryEntries = async (): Promise<HistoryEntry[]> => {
     
     // Transform database records to HistoryEntry format
     const entries: HistoryEntry[] = data.map(record => ({
+      id: record.id,
       date: record.date,
       action: record.action as HistoryEntry['action'],
       receiptId: record.receipt_id,
@@ -119,7 +121,9 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
     
     // For deleted items, we need to recreate them
     if (historyEntry.action === 'delete') {
-      const { date, nb, montantBL, avance, total } = historyEntry.details;
+      // Safely cast and access properties with type checking
+      const details = historyEntry.details as Partial<DeliveryReceipt>;
+      const { date, nb, montantBL, avance } = details;
       
       // Check if receipt already exists
       const { data: existingReceipt } = await supabase
@@ -137,9 +141,9 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
               id: receiptId,
               date,
               nb,
-              montantBL,
+              montantbl: montantBL,
               avance,
-              total: montantBL - avance,
+              total: (montantBL || 0) - (avance || 0),
               company_id: companyId
             }
           ]);
@@ -151,7 +155,9 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
       }
     } else {
       // For updates or adds, we just need to update the receipt
-      const { date, nb, montantBL, avance } = historyEntry.details;
+      // Safely cast and access properties with type checking
+      const details = historyEntry.details as Partial<DeliveryReceipt>;
+      const { date, nb, montantBL, avance } = details;
       
       const { error } = await supabase
         .from('delivery_receipts')
@@ -160,9 +166,9 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
             id: receiptId,
             date,
             nb,
-            montantBL,
+            montantbl: montantBL,
             avance,
-            total: montantBL - avance,
+            total: (montantBL || 0) - (avance || 0),
             company_id: companyId
           }
         ]);
