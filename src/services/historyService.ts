@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { HistoryEntry, DeliveryReceipt } from "@/types/deliveryReceipt";
 
@@ -93,31 +92,91 @@ export const updateHistoryEntry = async (
   }
 };
 
-export const restoreFromHistory = async (
-  receiptId: string
-): Promise<{ success: boolean, data?: Partial<DeliveryReceipt> }> => {
+export const restoreFromHistory = async (receiptId: string): Promise<{ success: boolean, data?: any }> => {
   try {
-    // Find the history entry to restore
-    const { data, error } = await supabase
+    // Find the history entry
+    const { data: historyEntries, error: historyError } = await supabase
       .from('history_entries')
       .select('*')
       .eq('receipt_id', receiptId)
       .order('created_at', { ascending: false })
       .limit(1);
-      
-    if (error) throw error;
+
+    if (historyError || !historyEntries || historyEntries.length === 0) {
+      console.error("Failed to find history entry:", historyError);
+      return { success: false };
+    }
+
+    const historyEntry = historyEntries[0];
     
-    if (data && data.length > 0) {
-      return {
-        success: true,
-        data: data[0].details as Partial<DeliveryReceipt> // Cast to expected type
-      };
+    // Check if details exist
+    if (!historyEntry.details) {
+      return { success: false };
+    }
+
+    // Extract company ID
+    const companyId = historyEntry.company_id;
+    
+    // For deleted items, we need to recreate them
+    if (historyEntry.action === 'delete') {
+      const { date, nb, montantBL, avance, total } = historyEntry.details;
+      
+      // Check if receipt already exists
+      const { data: existingReceipt } = await supabase
+        .from('delivery_receipts')
+        .select('*')
+        .eq('id', receiptId)
+        .single();
+        
+      if (!existingReceipt) {
+        // Recreate the receipt
+        const { data, error } = await supabase
+          .from('delivery_receipts')
+          .insert([
+            { 
+              id: receiptId,
+              date,
+              nb,
+              montantBL,
+              avance,
+              total: montantBL - avance,
+              company_id: companyId
+            }
+          ]);
+          
+        if (error) {
+          console.error("Failed to restore deleted receipt:", error);
+          return { success: false };
+        }
+      }
+    } else {
+      // For updates or adds, we just need to update the receipt
+      const { date, nb, montantBL, avance } = historyEntry.details;
+      
+      const { error } = await supabase
+        .from('delivery_receipts')
+        .upsert([
+          { 
+            id: receiptId,
+            date,
+            nb,
+            montantBL,
+            avance,
+            total: montantBL - avance,
+            company_id: companyId
+          }
+        ]);
+        
+      if (error) {
+        console.error("Failed to update receipt from history:", error);
+        return { success: false };
+      }
     }
     
-    return { success: false };
+    return { success: true, data: historyEntry.details };
   } catch (error) {
-    console.error("Error restoring from history in database:", error);
-    throw error;
+    console.error("Error restoring from history:", error);
+    return { success: false };
   }
 };
 

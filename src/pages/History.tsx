@@ -11,7 +11,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { formatDate, formatCurrency, formatNB, exportToExcel, exportToPDF } from '@/lib/formatters';
 import { HistoryEntry, CompanySettings, DeliveryReceipt } from '@/types/deliveryReceipt';
 import { getCompanySettings } from '@/services/companyService';
-import { getHistoryEntries, clearHistory } from '@/services/historyService';
+import { getHistoryEntries, clearHistory, restoreFromHistory } from '@/services/historyService';
 import { useToast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
@@ -284,6 +284,61 @@ const History = () => {
       </Form>
     </>
   );
+
+  const startEditing = (entry: HistoryEntry) => {
+    setEditingEntry(entry);
+    form.setValue('date', entry.details.date || '');
+    form.setValue('nb', entry.details.nb !== undefined ? entry.details.nb?.toString() || '' : '');
+    form.setValue('montantBL', entry.details.montantBL !== undefined ? entry.details.montantBL?.toString() || '' : '');
+    form.setValue('avance', entry.details.avance !== undefined ? entry.details.avance?.toString() || '' : '');
+  };
+  
+  const cancelEditing = () => {
+    setEditingEntry(null);
+    form.reset();
+  };
+  
+  const saveEditedEntry = async () => {
+    if (!editingEntry) return;
+    
+    try {
+      const formValues = form.getValues();
+      
+      // Convert to appropriate types
+      const updatedDetails = {
+        ...editingEntry.details,
+        date: formValues.date,
+        nb: formValues.nb,
+        montantBL: parseFloat(formValues.montantBL) || 0,
+        avance: parseFloat(formValues.avance) || 0,
+      };
+      
+      // Here you would normally update the history entry in the database
+      // For now we'll just update the local state
+      
+      setHistoryEntries(prev => 
+        prev.map(entry => 
+          entry.id === editingEntry.id 
+            ? { ...entry, details: updatedDetails } 
+            : entry
+        )
+      );
+      
+      setEditingEntry(null);
+      
+      toast({
+        title: "Entry Updated",
+        description: "History entry has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating history entry:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update history entry.",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">

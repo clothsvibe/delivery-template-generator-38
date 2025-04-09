@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import DeliveryTable from '@/components/DeliveryTable';
@@ -11,9 +10,10 @@ import { DeliveryReceipt, CompanySettings as CompanySettingsType, ColumnColors, 
 import { getDeliveryReceipts, addDeliveryReceipt, updateDeliveryReceipt, deleteDeliveryReceipt } from '@/services/deliveryReceiptService';
 import { getCompanySettings, updateCompanySettings } from '@/services/companyService';
 import { addHistoryEntry } from '@/services/historyService';
+import { addSampleDataToTable } from '@/lib/sampleData';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Eye, Settings, Clock, PaintBucket, Save, Plus, Home } from 'lucide-react';
+import { Eye, Settings, Clock, PaintBucket, Save, Plus, Home, Database } from 'lucide-react';
 
 const Admin = () => {
   const [deliveryData, setDeliveryData] = useState<DeliveryReceipt[]>([]);
@@ -55,7 +55,6 @@ const Admin = () => {
   const fetchData = async (companyId: string) => {
     try {
       setLoading(true);
-      // The service now returns data sorted by date (oldest first)
       const data = await getDeliveryReceipts(companyId);
       setDeliveryData(data);
     } catch (error) {
@@ -248,6 +247,30 @@ const Admin = () => {
     });
   };
 
+  const handleAddSampleData = async () => {
+    if (!companyId) return;
+    
+    try {
+      setLoading(true);
+      const updatedData = await addSampleDataToTable(companyId);
+      setDeliveryData(updatedData);
+      
+      toast({
+        title: "Sample Data Added",
+        description: "15 example delivery receipts have been added.",
+      });
+    } catch (error) {
+      console.error('Error adding sample data:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add sample data. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const closeAllPanels = () => {
     setShowAddForm(false);
     setShowSettings(false);
@@ -322,45 +345,59 @@ const Admin = () => {
                 onCancel={() => setShowRowColorEditor(false)}
               />
             ) : (
-              <div className="flex flex-col md:flex-row gap-2">
-                <Link to={companyId ? `/add-receipt/${companyId}` : "/add-receipt"} className="flex-1">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col md:flex-row gap-2">
+                  <Link to={companyId ? `/add-receipt/${companyId}` : "/add-receipt"} className="flex-1">
+                    <Button 
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Ajouter Nouveau Bon de Livraison
+                    </Button>
+                  </Link>
                   <Button 
-                    className="w-full flex items-center justify-center gap-2"
+                    onClick={() => { closeAllPanels(); setShowImport(true); }} 
+                    variant="outline" 
+                    className="flex-1"
                   >
-                    <Plus size={16} />
-                    Ajouter Nouveau Bon de Livraison
+                    Importer Données
                   </Button>
-                </Link>
+                </div>
+                
+                <div className="flex flex-col md:flex-row gap-2">
+                  <Button 
+                    onClick={() => { closeAllPanels(); setShowSettings(true); }} 
+                    variant="outline" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Settings size={16} />
+                    Paramètres
+                  </Button>
+                  <Button 
+                    onClick={() => { closeAllPanels(); setShowColorEditor(true); }} 
+                    variant="outline" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <PaintBucket size={16} />
+                    Couleurs Colonnes
+                  </Button>
+                  <Button 
+                    onClick={() => { closeAllPanels(); setShowRowColorEditor(true); }} 
+                    variant="outline" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <PaintBucket size={16} />
+                    Couleurs Lignes
+                  </Button>
+                </div>
+                
                 <Button 
-                  onClick={() => { closeAllPanels(); setShowImport(true); }} 
+                  onClick={handleAddSampleData} 
                   variant="outline" 
-                  className="flex-1"
+                  className="w-full flex items-center justify-center gap-2 mt-2 border-dashed"
                 >
-                  Importer Données
-                </Button>
-                <Button 
-                  onClick={() => { closeAllPanels(); setShowSettings(true); }} 
-                  variant="outline" 
-                  className="flex-1 flex items-center justify-center gap-2"
-                >
-                  <Settings size={16} />
-                  Paramètres
-                </Button>
-                <Button 
-                  onClick={() => { closeAllPanels(); setShowColorEditor(true); }} 
-                  variant="outline" 
-                  className="flex-1 flex items-center justify-center gap-2"
-                >
-                  <PaintBucket size={16} />
-                  Couleurs Colonnes
-                </Button>
-                <Button 
-                  onClick={() => { closeAllPanels(); setShowRowColorEditor(true); }} 
-                  variant="outline" 
-                  className="flex-1 flex items-center justify-center gap-2"
-                >
-                  <PaintBucket size={16} />
-                  Couleurs Lignes
+                  <Database size={16} />
+                  Ajouter 15 lignes d'exemple pour tests
                 </Button>
               </div>
             )}
