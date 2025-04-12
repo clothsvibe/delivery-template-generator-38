@@ -133,20 +133,18 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
         .single();
         
       if (!existingReceipt) {
-        // Recreate the receipt
-        const { data, error } = await supabase
+        // Recreate the receipt - fix type errors by converting types and ensuring proper format
+        const { error } = await supabase
           .from('delivery_receipts')
-          .insert([
-            { 
-              id: receiptId,
-              date,
-              nb,
-              montantbl: montantBL,
-              avance,
-              total: (montantBL || 0) - (avance || 0),
-              company_id: companyId
-            }
-          ]);
+          .insert({
+            id: receiptId,
+            date: date || '',
+            nb: nb !== undefined ? String(nb) : null,
+            montantbl: typeof montantBL === 'number' ? montantBL : null,
+            avance: typeof avance === 'number' ? avance : null,
+            total: (typeof montantBL === 'number' ? montantBL : 0) - (typeof avance === 'number' ? avance : 0),
+            company_id: companyId
+          });
           
         if (error) {
           console.error("Failed to restore deleted receipt:", error);
@@ -159,19 +157,18 @@ export const restoreFromHistory = async (receiptId: string): Promise<{ success: 
       const details = historyEntry.details as Partial<DeliveryReceipt>;
       const { date, nb, montantBL, avance } = details;
       
+      // Fix type errors by converting types and ensuring proper format
       const { error } = await supabase
         .from('delivery_receipts')
-        .upsert([
-          { 
-            id: receiptId,
-            date,
-            nb,
-            montantbl: montantBL,
-            avance,
-            total: (montantBL || 0) - (avance || 0),
-            company_id: companyId
-          }
-        ]);
+        .upsert({
+          id: receiptId,
+          date: date || '',
+          nb: nb !== undefined ? String(nb) : null,
+          montantbl: typeof montantBL === 'number' ? montantBL : null,
+          avance: typeof avance === 'number' ? avance : null,
+          total: (typeof montantBL === 'number' ? montantBL : 0) - (typeof avance === 'number' ? avance : 0),
+          company_id: companyId
+        });
         
       if (error) {
         console.error("Failed to update receipt from history:", error);
