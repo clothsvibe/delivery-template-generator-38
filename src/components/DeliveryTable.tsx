@@ -275,6 +275,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     
     if (!draggedItem || draggedItem.id === droppedOnItem.id) {
       setIsDragging(false);
+      setDragOverIndex(null);
       return;
     }
     
@@ -282,6 +283,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     
     if (draggedItemIndex === -1 || dropIndex === -1) {
       setIsDragging(false);
+      setDragOverIndex(null);
       return;
     }
     
@@ -297,10 +299,11 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     
     setIsDragging(false);
     setDraggedItem(null);
+    setDragOverIndex(null);
     
     toast({
-      title: "Success",
-      description: "Row moved successfully",
+      title: "Row Moved",
+      description: "The row has been successfully repositioned",
       duration: 2000,
     });
   };
@@ -571,7 +574,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     key={row.id}
                     className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''} 
                       ${row.isEditing && mode === 'edit' ? 'cursor-move transition-colors duration-200' : ''}
-                      ${isDragging && dragOverIndex === index ? 'border-t-2 border-blue-500' : ''}
+                      ${isDragging && dragOverIndex === index ? 'border-t-2 border-blue-500 animate-pulse-border' : ''}
                     `}
                     onClick={() => !row.isEditing && handleRowClick(row)}
                     style={{ backgroundColor: getRowBackground(index, row) }}
