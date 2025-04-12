@@ -288,6 +288,26 @@ const Admin = () => {
     });
   };
 
+  const handleReorder = async (reorderedData: DeliveryReceipt[]) => {
+    if (!companyId) return;
+    
+    try {
+      setDeliveryData(reorderedData);
+      
+      toast({
+        title: "Success",
+        description: "Table rows reordered successfully.",
+      });
+    } catch (error) {
+      console.error('Error reordering delivery receipts:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to reorder rows. Please try again.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] px-4 py-8">
       <div className="max-w-7xl mx-auto">
@@ -430,6 +450,7 @@ const Admin = () => {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onAddMore={handleAddMore}
+          onReorder={handleReorder}
         />
         
         <div className="flex justify-center mt-8">

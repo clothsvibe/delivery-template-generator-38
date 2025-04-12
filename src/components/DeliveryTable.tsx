@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeliveryReceipt, DeliveryTableColumn, ColumnColors, RowColors } from '@/types/deliveryReceipt';
 import { formatCurrency, formatDate, parseNumberInput, exportToExcel, exportToPDF, formatNB } from '@/lib/formatters';
-import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X, Settings } from 'lucide-react';
+import { ChevronUp, ChevronDown, FileText, Download, Edit, Trash, Save, X, Settings, GripVertical } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,6 +34,7 @@ interface DeliveryTableProps {
   onDelete?: (id: string) => void;
   onRowClick?: (receipt: DeliveryReceipt) => void;
   onAddMore?: () => void;
+  onReorder?: (reorderedData: DeliveryReceipt[]) => void;
 }
 
 const DeliveryTable: React.FC<DeliveryTableProps> = ({ 
@@ -46,7 +47,8 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   onUpdate,
   onDelete,
   onRowClick,
-  onAddMore
+  onAddMore,
+  onReorder
 }) => {
   const [tableData, setTableData] = useState<DeliveryReceipt[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +62,8 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     montantBL: string;
     avance: string;
   }>>({});
+  const [draggedItem, setDraggedItem] = useState<DeliveryReceipt | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const defaultColumnColors = {
     date: '#ffffff',
@@ -213,6 +217,62 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (onDelete) onDelete(id);
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, item: DeliveryReceipt) => {
+    setDraggedItem(item);
+    setIsDragging(true);
+    
+    e.dataTransfer.setData('text/plain', item.id);
+    
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-9999px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    e.preventDefault();
+    if (!draggedItem) return;
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, droppedOnItem: DeliveryReceipt) => {
+    e.preventDefault();
+    
+    if (!draggedItem || draggedItem.id === droppedOnItem.id) {
+      setIsDragging(false);
+      return;
+    }
+    
+    const draggedItemIndex = tableData.findIndex(item => item.id === draggedItem.id);
+    const droppedOnItemIndex = tableData.findIndex(item => item.id === droppedOnItem.id);
+    
+    if (draggedItemIndex === -1 || droppedOnItemIndex === -1) {
+      setIsDragging(false);
+      return;
+    }
+    
+    const newTableData = [...tableData];
+    const [removed] = newTableData.splice(draggedItemIndex, 1);
+    newTableData.splice(droppedOnItemIndex, 0, removed);
+    
+    setTableData(newTableData);
+    setIsDragging(false);
+    setDraggedItem(null);
+    
+    if (onReorder) {
+      onReorder(newTableData);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDraggedItem(null);
+  };
+
   const filteredAndSortedData = useMemo(() => {
     let processedData = [...tableData];
     
@@ -352,6 +412,10 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   };
 
   const getRowBackground = (index: number, row: DeliveryReceipt) => {
+    if (isDragging && draggedItem && draggedItem.id === row.id) {
+      return 'bg-blue-100';
+    }
+    
     if (row.isEditing) return 'bg-blue-50';
     
     if (row.date && !isDateFormat(row.date)) {
@@ -407,6 +471,9 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
           <Table className="delivery-table border-collapse">
             <TableHeader>
               <TableRow className="border-t border-b border-gray-200" style={{ backgroundColor: tableRowColors.header }}>
+                {mode === 'edit' && (
+                  <TableHead className="border-r border-l border-gray-200 w-8"></TableHead>
+                )}
                 {columns.map((column) => (
                   <TableHead 
                     key={column.id}
@@ -433,6 +500,11 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
               {loading ? (
                 Array(10).fill(0).map((_, idx) => (
                   <TableRow key={`skeleton-${idx}`} className="animate-pulse border-b border-gray-200">
+                    {mode === 'edit' && (
+                      <TableCell className="border-r border-l border-gray-200 w-8">
+                        <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                      </TableCell>
+                    )}
                     {columns.map(column => (
                       <TableCell key={`skeleton-cell-${column.id}-${idx}`} className="border-r border-l border-gray-200">
                         <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
@@ -449,10 +521,24 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 filteredAndSortedData.map((row, index) => (
                   <TableRow 
                     key={row.id}
-                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''}`}
-                    onClick={() => handleRowClick(row)}
+                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''} ${row.isEditing && mode === 'edit' ? 'cursor-move' : ''}`}
+                    onClick={() => !row.isEditing && handleRowClick(row)}
                     style={{ backgroundColor: getRowBackground(index, row) }}
+                    draggable={mode === 'edit' && row.isEditing}
+                    onDragStart={(e) => mode === 'edit' && row.isEditing && handleDragStart(e, row)}
+                    onDragOver={(e) => mode === 'edit' && handleDragOver(e, index)}
+                    onDrop={(e) => mode === 'edit' && handleDrop(e, row)}
+                    onDragEnd={handleDragEnd}
                   >
+                    {mode === 'edit' && (
+                      <TableCell className="border-r border-l border-gray-200 w-8 p-0">
+                        {row.isEditing && (
+                          <div className="flex items-center justify-center h-full">
+                            <GripVertical size={16} className="text-gray-400 cursor-grab" />
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
                     {columns.map(column => (
                       <TableCell 
                         key={`${row.id}-${column.id}`} 
@@ -553,7 +639,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
               ) : (
                 <TableRow>
                   <TableCell 
-                    colSpan={mode === 'edit' ? columns.length + 1 : columns.length} 
+                    colSpan={mode === 'edit' ? columns.length + 2 : columns.length} 
                     className="text-center py-8 border-r border-l border-gray-200"
                   >
                     Aucun résultat trouvé
