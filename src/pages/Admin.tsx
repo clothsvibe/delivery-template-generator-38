@@ -294,6 +294,10 @@ const Admin = () => {
     try {
       setDeliveryData(reorderedData);
       
+      for (const receipt of reorderedData) {
+        await addHistoryEntry('update', receipt.id, receipt, companyId);
+      }
+      
       toast({
         title: "Success",
         description: "Table rows reordered successfully.",

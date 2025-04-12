@@ -64,6 +64,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   }>>({});
   const [draggedItem, setDraggedItem] = useState<DeliveryReceipt | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
   const defaultColumnColors = {
     date: '#ffffff',
@@ -217,30 +218,60 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (onDelete) onDelete(id);
   };
 
-  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, item: DeliveryReceipt) => {
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, item: DeliveryReceipt, index: number) => {
     setDraggedItem(item);
     setIsDragging(true);
     
-    e.dataTransfer.setData('text/plain', item.id);
+    e.dataTransfer.setData('text/plain', index.toString());
     
-    const dragImage = document.createElement('div');
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-9999px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.add('opacity-50');
+    }
     
-    setTimeout(() => {
-      document.body.removeChild(dragImage);
-    }, 0);
+    if (e.dataTransfer.setDragImage) {
+      const dragPreview = e.currentTarget.cloneNode(true) as HTMLElement;
+      dragPreview.style.position = 'absolute';
+      dragPreview.style.top = '-9999px';
+      dragPreview.style.background = '#f0f9ff';
+      dragPreview.style.border = '2px dashed #3b82f6';
+      dragPreview.style.opacity = '0.8';
+      document.body.appendChild(dragPreview);
+      
+      e.dataTransfer.setDragImage(dragPreview, 20, 20);
+      
+      setTimeout(() => {
+        document.body.removeChild(dragPreview);
+      }, 0);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (!draggedItem) return;
+    
+    setDragOverIndex(index);
+    
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.add('bg-blue-50', 'border-t-2', 'border-blue-500');
+    }
+    
+    e.dataTransfer.dropEffect = 'move';
+  };
+  
+  const handleDragLeave = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.remove('bg-blue-50', 'border-t-2', 'border-blue-500');
+    }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, droppedOnItem: DeliveryReceipt) => {
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, droppedOnItem: DeliveryReceipt, dropIndex: number) => {
     e.preventDefault();
+    e.stopPropagation();
     
     if (!draggedItem || draggedItem.id === droppedOnItem.id) {
       setIsDragging(false);
@@ -248,29 +279,42 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     }
     
     const draggedItemIndex = tableData.findIndex(item => item.id === draggedItem.id);
-    const droppedOnItemIndex = tableData.findIndex(item => item.id === droppedOnItem.id);
     
-    if (draggedItemIndex === -1 || droppedOnItemIndex === -1) {
+    if (draggedItemIndex === -1 || dropIndex === -1) {
       setIsDragging(false);
       return;
     }
     
     const newTableData = [...tableData];
     const [removed] = newTableData.splice(draggedItemIndex, 1);
-    newTableData.splice(droppedOnItemIndex, 0, removed);
+    newTableData.splice(dropIndex, 0, removed);
     
     setTableData(newTableData);
-    setIsDragging(false);
-    setDraggedItem(null);
     
     if (onReorder) {
       onReorder(newTableData);
     }
-  };
-
-  const handleDragEnd = () => {
+    
     setIsDragging(false);
     setDraggedItem(null);
+    
+    toast({
+      title: "Success",
+      description: "Row moved successfully",
+      duration: 2000,
+    });
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+    
+    if (e.currentTarget.classList) {
+      e.currentTarget.classList.remove('opacity-50');
+    }
+    
+    setIsDragging(false);
+    setDraggedItem(null);
+    setDragOverIndex(null);
   };
 
   const filteredAndSortedData = useMemo(() => {
@@ -416,6 +460,10 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
       return 'bg-blue-100';
     }
     
+    if (isDragging && dragOverIndex === index) {
+      return 'bg-blue-50';
+    }
+    
     if (row.isEditing) return 'bg-blue-50';
     
     if (row.date && !isDateFormat(row.date)) {
@@ -521,20 +569,25 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 filteredAndSortedData.map((row, index) => (
                   <TableRow 
                     key={row.id}
-                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''} ${row.isEditing && mode === 'edit' ? 'cursor-move' : ''}`}
+                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''} 
+                      ${row.isEditing && mode === 'edit' ? 'cursor-move transition-colors duration-200' : ''}
+                      ${isDragging && dragOverIndex === index ? 'border-t-2 border-blue-500' : ''}
+                    `}
                     onClick={() => !row.isEditing && handleRowClick(row)}
                     style={{ backgroundColor: getRowBackground(index, row) }}
                     draggable={mode === 'edit' && row.isEditing}
-                    onDragStart={(e) => mode === 'edit' && row.isEditing && handleDragStart(e, row)}
+                    onDragStart={(e) => mode === 'edit' && row.isEditing && handleDragStart(e, row, index)}
                     onDragOver={(e) => mode === 'edit' && handleDragOver(e, index)}
-                    onDrop={(e) => mode === 'edit' && handleDrop(e, row)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => mode === 'edit' && handleDrop(e, row, index)}
                     onDragEnd={handleDragEnd}
                   >
                     {mode === 'edit' && (
                       <TableCell className="border-r border-l border-gray-200 w-8 p-0">
                         {row.isEditing && (
                           <div className="flex items-center justify-center h-full">
-                            <GripVertical size={16} className="text-gray-400 cursor-grab" />
+                            <GripVertical size={16} className={`${isDragging && draggedItem?.id === row.id ? 'text-blue-500' : 'text-gray-400'} 
+                              cursor-grab transition-colors duration-200`} />
                           </div>
                         )}
                       </TableCell>
