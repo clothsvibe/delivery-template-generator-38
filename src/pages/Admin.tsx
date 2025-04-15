@@ -247,17 +247,41 @@ const Admin = () => {
     });
   };
 
-  const handleAddSampleData = async () => {
+  const addSampleDeliveryData = async () => {
     if (!companyId) return;
     
+    const sampleData = [
+      { date: '24/12/24', nb: 'BON', montantBL: 1902.00, avance: 0 },
+      { date: '26/12/24', nb: 'ESPECE', montantBL: 0, avance: 1900.00 },
+      { date: '26/12/24', nb: 'REMIS', montantBL: 0, avance: 2.00 },
+      { date: '31/12/24', nb: '12250', montantBL: 4262.50, avance: 0 },
+      { date: '06/01/25', nb: '2701', montantBL: 2400.00, avance: 0 },
+      { date: '12/01/25', nb: '2702', montantBL: 1870.00, avance: 0 },
+      { date: '16/01/25', nb: '2703', montantBL: 3100.00, avance: 0 },
+      { date: '17/01/25', nb: 'BON RETOUR N° 1867', montantBL: 0, avance: 900.00 },
+      { date: '06/02/25', nb: '2706', montantBL: 9610.00, avance: 0 },
+      { date: '02/01/25', nb: 'CHEQ N° 348736', montantBL: 0, avance: 20000.00 },
+      { date: '02/01/25', nb: 'ESPECE', montantBL: 0, avance: 342.00 },
+      { date: '01/02/25', nb: '2707', montantBL: 11246.00, avance: 0 },
+      { date: '08/03/25', nb: '2708', montantBL: 11000.00, avance: 0 },
+      { date: '17/03/25', nb: '2709', montantBL: 27500.00, avance: 0 },
+      { date: '21/03/25', nb: '2710', montantBL: 965.00, avance: 0 },
+      { date: '25/03/25', nb: '2711', montantBL: 1425.00, avance: 0 },
+      { date: '08/04/25', nb: 'CHEQ 097121-1800084-666649', montantBL: 0, avance: 51400.00 },
+      { date: '10/04/25', nb: '2712', montantBL: 686.50, avance: 0 },
+      { date: '10/04/25', nb: '2714', montantBL: 2460.00, avance: 0 },
+      { date: '15/04/25', nb: '12677', montantBL: 1800.00, avance: 0 }
+    ];
+
     try {
       setLoading(true);
-      const updatedData = await addSampleDataToTable(companyId);
-      setDeliveryData(updatedData);
-      
+      for (const receipt of sampleData) {
+        await addDeliveryReceipt(receipt, companyId);
+      }
+      await fetchData(companyId);
       toast({
-        title: "Sample Data Added",
-        description: "15 example delivery receipts have been added.",
+        title: "Success",
+        description: "Sample delivery receipts have been added successfully.",
       });
     } catch (error) {
       console.error('Error adding sample data:', error);
@@ -269,6 +293,10 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddSampleData = () => {
+    addSampleDeliveryData();
   };
 
   const closeAllPanels = () => {
