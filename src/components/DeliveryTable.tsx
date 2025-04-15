@@ -67,17 +67,17 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   
   const defaultColumnColors = {
-    date: '#ffffff',
-    nb: '#ffffff',
-    montantBL: '#0ea5e9',
-    avance: '#f97316',
-    total: '#22c55e'
+    date: '#e2e8f0',
+    nb: '#e2e8f0',
+    montantBL: '#e2e8f0',
+    avance: '#e2e8f0',
+    total: '#e2e8f0'
   };
   
   const defaultRowColors = {
-    even: '#ffffff',
-    odd: '#f3f4f6',
-    header: '#f8fafc'
+    even: '#f8fafc',
+    odd: '#e2e8f0',
+    header: '#e2e8f0'
   };
   
   const tableColumnColors = columnColors || defaultColumnColors;
@@ -450,12 +450,12 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (key === 'avance' && typeof value === 'number' && value > 0) {
       return (
         <div className="w-full h-full" style={{ backgroundColor: '#FEF7CD' }}>
-          {column.cell ? column.cell({ getValue: () => value }) : String(value || '')}
+          {column.cell ? column.cell({ getValue: () => value }) : String(value || '-')}
         </div>
       );
     }
     
-    return column.cell ? column.cell({ getValue: () => value }) : String(value || '');
+    return column.cell ? column.cell({ getValue: () => value }) : (value || '-');
   };
 
   const getRowBackground = (index: number, row: DeliveryReceipt) => {
@@ -470,7 +470,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
     if (row.isEditing) return 'bg-blue-50';
     
     if (row.date && !isDateFormat(row.date)) {
-      return 'bg-green-100';
+      return '#e2e8f0';
     }
     
     return index % 2 === 0 ? tableRowColors.even : tableRowColors.odd;
@@ -517,22 +517,25 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
         </div>
       </div>
       
-      <div className="table-container animate-slide-up">
+      <div className="table-container animate-slide-up border border-gray-300">
         <div className="overflow-x-auto">
-          <Table className="delivery-table border-collapse">
+          <Table className="delivery-table border-collapse w-full">
             <TableHeader>
-              <TableRow className="border-t border-b border-gray-200" style={{ backgroundColor: tableRowColors.header }}>
+              <TableRow className="border-t border-b border-gray-300" 
+                style={{ backgroundColor: tableRowColors.header }}>
                 {mode === 'edit' && (
-                  <TableHead className="border-r border-l border-gray-200 w-8"></TableHead>
+                  <TableHead className="border border-gray-300 w-8"></TableHead>
                 )}
                 {columns.map((column) => (
                   <TableHead 
                     key={column.id}
                     onClick={() => column.enableSorting && handleSort(column.accessorKey)}
-                    className={`border-r border-l border-gray-200 ${column.enableSorting ? 'cursor-pointer select-none' : ''}`}
-                    style={{ backgroundColor: tableColumnColors[column.accessorKey as keyof typeof tableColumnColors] || '#ffffff' }}
+                    className={`border border-gray-300 p-2 text-center font-semibold ${
+                      column.enableSorting ? 'cursor-pointer select-none' : ''
+                    }`}
+                    style={{ backgroundColor: tableColumnColors[column.accessorKey as keyof typeof tableColumnColors] || '#e2e8f0' }}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-center gap-1">
                       {column.header}
                       {column.enableSorting && sortConfig.key === column.accessorKey && (
                         <span className="transition-transform duration-200">
@@ -543,7 +546,7 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                   </TableHead>
                 ))}
                 {mode === 'edit' && (
-                  <TableHead className="border-r border-l border-gray-200 w-24">Actions</TableHead>
+                  <TableHead className="border border-gray-300 w-24">Actions</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -552,17 +555,17 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 Array(10).fill(0).map((_, idx) => (
                   <TableRow key={`skeleton-${idx}`} className="animate-pulse border-b border-gray-200">
                     {mode === 'edit' && (
-                      <TableCell className="border-r border-l border-gray-200 w-8">
+                      <TableCell className="border border-gray-300 w-8">
                         <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
                       </TableCell>
                     )}
                     {columns.map(column => (
-                      <TableCell key={`skeleton-cell-${column.id}-${idx}`} className="border-r border-l border-gray-200">
+                      <TableCell key={`skeleton-cell-${column.id}-${idx}`} className="border border-gray-300 w-8">
                         <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
                       </TableCell>
                     ))}
                     {mode === 'edit' && (
-                      <TableCell className="border-r border-l border-gray-200">
+                      <TableCell className="border border-gray-300">
                         <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
                       </TableCell>
                     )}
@@ -572,10 +575,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                 filteredAndSortedData.map((row, index) => (
                   <TableRow 
                     key={row.id}
-                    className={`border-b border-gray-200 ${onRowClick && mode === 'view' ? 'cursor-pointer' : ''} 
-                      ${row.isEditing && mode === 'edit' ? 'cursor-move transition-colors duration-200' : ''}
-                      ${isDragging && dragOverIndex === index ? 'border-t-2 border-blue-500 animate-pulse-border' : ''}
-                    `}
+                    className={`${
+                      onRowClick && mode === 'view' ? 'cursor-pointer' : ''
+                    } ${
+                      row.isEditing && mode === 'edit' ? 'cursor-move transition-colors duration-200' : ''
+                    } ${
+                      isDragging && dragOverIndex === index ? 'border-t-2 border-blue-500 animate-pulse-border' : ''
+                    }`}
                     onClick={() => !row.isEditing && handleRowClick(row)}
                     style={{ backgroundColor: getRowBackground(index, row) }}
                     draggable={mode === 'edit' && row.isEditing}
@@ -586,11 +592,10 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     onDragEnd={handleDragEnd}
                   >
                     {mode === 'edit' && (
-                      <TableCell className="border-r border-l border-gray-200 w-8 p-0">
+                      <TableCell className="border border-gray-300 w-8 p-0">
                         {row.isEditing && (
                           <div className="flex items-center justify-center h-full">
-                            <GripVertical size={16} className={`${isDragging && draggedItem?.id === row.id ? 'text-blue-500' : 'text-gray-400'} 
-                              cursor-grab transition-colors duration-200`} />
+                            <GripVertical size={16} className="text-gray-400 cursor-grab transition-colors duration-200" />
                           </div>
                         )}
                       </TableCell>
@@ -598,13 +603,13 @@ const DeliveryTable: React.FC<DeliveryTableProps> = ({
                     {columns.map(column => (
                       <TableCell 
                         key={`${row.id}-${column.id}`} 
-                        className="border-r border-l border-gray-200"
+                        className="border border-gray-300 p-2 text-center"
                       >
                         {renderCell(row, column)}
                       </TableCell>
                     ))}
                     {mode === 'edit' && (
-                      <TableCell className="border-r border-l border-gray-200">
+                      <TableCell className="border border-gray-300">
                         <div className="flex items-center space-x-1">
                           {row.isEditing ? (
                             <>
